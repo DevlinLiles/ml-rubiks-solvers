@@ -29,16 +29,21 @@ dev = [
     "black>=24.3",
     "ruff>=0.3",
 ]
+ui = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+]
 
 [project.scripts]
 rubiks-train = "scripts.train:main"
 rubiks-solve = "scripts.solve:main"
 rubiks-benchmark = "scripts.benchmark:main"
 rubiks-viz = "scripts.visualize:main"
+rubiks-ui = "ui.app:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["rubiks_solve*", "scripts*"]
+include = ["rubiks_solve*", "scripts*", "ui*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

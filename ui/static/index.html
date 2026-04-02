@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rubik's Cube ML Solver</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ===== Header ===== -->
+  <header>
+    <h1>Rubik's Cube <span>ML Solver</span></h1>
+
+    <nav class="tabs">
+      <button class="tab-btn active" data-tab="solve-panel">Solve</button>
+      <button class="tab-btn"        data-tab="train-panel">Train</button>
+    </nav>
+
+    <div class="status-badge">
+      <div class="spinner" id="global-spinner"></div>
+      <span id="status-label"></span>
+    </div>
+  </header>
+
+  <!-- ===== SOLVE TAB ===== -->
+  <section class="tab-panel active" id="solve-panel">
+
+    <!-- Left controls -->
+    <aside class="left-panel">
+
+      <div class="card">
+        <div class="card-title">Puzzle</div>
+
+        <div class="form-group">
+          <label for="solve-puzzle">Type</label>
+          <select id="solve-puzzle"></select>
+        </div>
+
+        <div class="form-group">
+          <label for="solve-solver">Solver</label>
+          <select id="solve-solver"></select>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Parameters</div>
+
+        <div class="form-group">
+          <label>Scramble Depth</label>
+          <div class="range-row">
+            <input type="range" id="scramble-depth-slider" min="1" max="10" value="5" />
+            <span id="scramble-depth-val">5</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="solve-seed">Seed</label>
+          <input type="number" id="solve-seed" value="42" min="0" />
+        </div>
+
+        <div class="form-group">
+          <label for="solve-max-gen">Max Generations</label>
+          <input type="number" id="solve-max-gen" value="200" min="1" max="5000" />
+        </div>
+
+        <div class="form-group">
+          <label for="solve-pop-size">Population Size</label>
+          <input type="number" id="solve-pop-size" value="100" min="10" max="2000" />
+        </div>
+      </div>
+
+      <button class="btn btn-primary" id="solve-btn">
+        ⚙ Scramble &amp; Solve
+      </button>
+
+    </aside>
+
+    <!-- Center: 3D cube canvas -->
+    <main class="center-panel">
+      <div id="cube-canvas-container"></div>
+    </main>
+
+    <!-- Right: playback + stats + move list -->
+    <aside class="right-panel">
+
+      <div class="card">
+        <div class="card-title">Playback</div>
+        <div class="playback-controls">
+          <button class="btn btn-icon" id="step-start-btn" title="Go to start" disabled>⏮</button>
+          <button class="btn btn-icon" id="step-back-btn"  title="Step back"   disabled>◀</button>
+          <button class="btn btn-icon" id="play-pause-btn" title="Play/Pause"  disabled>▶</button>
+          <button class="btn btn-icon" id="step-fwd-btn"   title="Step forward" disabled>▶</button>
+          <button class="btn btn-icon" id="step-end-btn"   title="Go to end"   disabled>⏭</button>
+        </div>
+        <div style="margin-top:10px;">
+          <div class="form-group">
+            <label>Speed</label>
+            <div class="range-row">
+              <input type="range" id="speed-slider" min="1" max="10" value="4" />
+              <span id="speed-val"></span>
+            </div>
+          </div>
+        </div>
+        <div id="step-info" style="font-size:12px;color:var(--text-muted);margin-top:6px;"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Stats</div>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-value" id="stat-iterations">-</div>
+            <div class="stat-label">Iterations</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="stat-time">-</div>
+            <div class="stat-label">Time</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="stat-solved">-</div>
+            <div class="stat-label">Solved</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="stat-moves">-</div>
+            <div class="stat-label">Moves</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="flex:1;min-height:0;display:flex;flex-direction:column;">
+        <div class="card-title">Moves</div>
+        <div class="move-list" id="move-list"></div>
+      </div>
+
+    </aside>
+
+  </section>
+
+  <!-- ===== TRAIN TAB ===== -->
+  <section class="tab-panel" id="train-panel">
+
+    <!-- Left controls -->
+    <aside class="left-panel">
+
+      <div class="card">
+        <div class="card-title">Puzzle</div>
+        <div class="form-group">
+          <label for="train-puzzle">Type</label>
+          <select id="train-puzzle"></select>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Training Config</div>
+
+        <div class="form-group">
+          <label for="train-epochs">Epochs / Generations</label>
+          <input type="number" id="train-epochs" value="200" min="1" max="5000" />
+        </div>
+
+        <div class="form-group">
+          <label for="train-scramble">Scramble Depth</label>
+          <input type="number" id="train-scramble" value="5" min="1" max="20" />
+        </div>
+
+        <div class="form-group">
+          <label for="train-seed">Seed</label>
+          <input type="number" id="train-seed" value="42" min="0" />
+        </div>
+      </div>
+
+      <button class="btn btn-primary" id="train-btn">
+        ▶ Start Training
+      </button>
+
+      <div class="card" style="margin-top:4px;">
+        <div class="card-title">Training Stats</div>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-value" id="train-stat-gens">-</div>
+            <div class="stat-label">Generations</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="train-stat-time">-</div>
+            <div class="stat-label">Time</div>
+          </div>
+          <div class="stat-item" style="grid-column:span 2;">
+            <div class="stat-value" id="train-stat-solved">-</div>
+            <div class="stat-label">Solved</div>
+          </div>
+        </div>
+      </div>
+
+    </aside>
+
+    <!-- Right: chart area -->
+    <div class="train-chart-area">
+      <h2 style="font-size:15px;font-weight:600;color:var(--text-primary);">
+        Fitness over Generations
+      </h2>
+      <div class="chart-wrapper">
+        <canvas id="train-chart"></canvas>
+      </div>
+    </div>
+
+  </section>
+
+</div><!-- .app -->
+
+<!-- Notification toast -->
+<div class="notify" id="notify"></div>
+
+<!-- ===== CDN dependencies ===== -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<!-- ===== App scripts ===== -->
+<script src="/js/cube3d.js"></script>
+<script src="/js/app.js"></script>
+
+</body>
+</html>

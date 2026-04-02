@@ -1,0 +1,5 @@
+-r base.txt
+mlx>=0.16
+mlx-data>=0.0.5
+gymnasium>=0.29
+deap>=1.4

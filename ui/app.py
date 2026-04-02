@@ -130,12 +130,14 @@ def _run_solve_job(
             cfg = GeneticConfig(
                 max_generations=max_generations,
                 population_size=population_size,
+                max_chromosome_length=puzzle_cls.move_limit(),
                 seed=seed,
             )
             solver = GeneticSolver(puzzle_cls, cfg)
         elif solver_name == "mcts":
             cfg = MCTSConfig(
-                n_simulations=max(1000, max_generations * 20),
+                n_simulations=500_000,
+                time_limit_seconds=float(max_generations),  # repurpose field as seconds
                 seed=seed,
             )
             solver = MCTSSolver(puzzle_cls, cfg)

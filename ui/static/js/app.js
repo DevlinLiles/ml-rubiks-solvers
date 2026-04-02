@@ -174,6 +174,18 @@ class SolveController {
     // Initialize cube
     this._reinitCube();
     pd.addEventListener('change', () => this._reinitCube());
+    sd.addEventListener('change', () => this._updateSolverParams());
+    this._updateSolverParams();
+  }
+
+  _updateSolverParams() {
+    const solver = document.getElementById('solve-solver').value;
+    const isMcts = solver === 'mcts';
+    document.getElementById('solve-max-gen-label').textContent =
+      isMcts ? 'Time Limit (s)' : 'Max Generations';
+    document.getElementById('solve-max-gen').value = isMcts ? 30 : 2000;
+    const popGroup = document.getElementById('solve-pop-size-group');
+    if (popGroup) popGroup.style.display = isMcts ? 'none' : '';
   }
 
   _reinitCube() {
@@ -283,8 +295,8 @@ class SolveController {
     // Build move list
     this._buildMoveList();
 
-    // Show initial (solved) state
-    this._renderStep(0);
+    // Show scrambled state immediately (skip scramble animation)
+    this._renderStep(this.scrambleCount);
     this._updatePlaybackButtons();
   }
 
@@ -362,10 +374,13 @@ class SolveController {
   }
 
   _startPlay() {
-    if (this.currentStep >= this.allMoves.length) this.currentStep = 0;
+    // If at end or before the scramble section, reset to start of solve
+    if (this.currentStep >= this.allMoves.length || this.currentStep < this.scrambleCount) {
+      this._renderStep(this.scrambleCount);
+    }
     this.playing = true;
     document.getElementById('play-pause-btn').textContent = '⏸';
-    this._schedulePlay();
+    this._playNextAnimated();
   }
 
   _stopPlay() {
@@ -374,17 +389,40 @@ class SolveController {
     document.getElementById('play-pause-btn').textContent = '▶';
   }
 
-  _schedulePlay() {
-    const speedVal = parseInt(document.getElementById('speed-slider').value, 10) || 3;
-    // speed 1-10 → delay 1000ms-100ms
-    const intervalMs = Math.round(1100 - speedVal * 100);
-    this.playTimer = setInterval(() => {
-      if (this.currentStep >= this.allMoves.length) {
-        this._stopPlay();
-        return;
+  async _playNextAnimated() {
+    while (this.playing && this.currentStep < this.allMoves.length) {
+      const step = this.currentStep + 1;
+      const moveData = this.allMoves[step - 1];
+      const newState = this.allStates[step];
+      if (!moveData || !newState) break;
+
+      // speed 1-10 → animation 500ms-10ms
+      const speedVal = parseInt(document.getElementById('speed-slider').value, 10) || 2;
+      const durationMs = Math.round(500 - (speedVal - 1) * (490 / 9));
+
+      if (!this.isMegaminx && this.cube3d) {
+        await this.cube3d.animateMove(moveData, newState.colors, durationMs);
+      } else {
+        this._renderStep(step);
+        await delay(durationMs);
       }
-      this._renderStep(this.currentStep + 1);
-    }, intervalMs);
+
+      // Update step tracking and UI without re-setting cube state (already done by animateMove)
+      this.currentStep = step;
+      const total = this.allMoves.length;
+      const phase = step <= this.scrambleCount ? 'scramble' : 'solve';
+      document.getElementById('step-info').innerHTML =
+        `Step <b>${step}</b>/${total} <span class="phase-badge ${phase}">${phase}</span>`;
+      document.querySelectorAll('.move-item').forEach((el) => {
+        el.classList.toggle('active', parseInt(el.dataset.step, 10) === step);
+      });
+      const activeItem = document.querySelector('.move-item.active');
+      if (activeItem) activeItem.scrollIntoView({ block: 'nearest' });
+
+      // Brief pause between moves
+      if (this.playing) await delay(120);
+    }
+    if (this.playing) this._stopPlay();
   }
 
   _resetPlayback() {

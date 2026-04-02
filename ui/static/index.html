@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Rubik's Cube ML Solver</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='45' height='45' x='5' y='5' rx='6' fill='%23C41E3A'/><rect width='45' height='45' x='55' y='5' rx='6' fill='%230046AD'/><rect width='45' height='45' x='5' y='55' rx='6' fill='%23FF5800'/><rect width='45' height='45' x='55' y='55' rx='6' fill='%23009B48'/></svg>" />
   <link rel="stylesheet" href="/css/style.css" />
 </head>
 <body>
@@ -51,8 +52,8 @@
         <div class="form-group">
           <label>Scramble Depth</label>
           <div class="range-row">
-            <input type="range" id="scramble-depth-slider" min="1" max="10" value="5" />
-            <span id="scramble-depth-val">5</span>
+            <input type="range" id="scramble-depth-slider" min="1" max="10" value="3" />
+            <span id="scramble-depth-val">3</span>
           </div>
         </div>
 
@@ -62,13 +63,13 @@
         </div>
 
         <div class="form-group">
-          <label for="solve-max-gen">Max Generations</label>
-          <input type="number" id="solve-max-gen" value="200" min="1" max="5000" />
+          <label for="solve-max-gen" id="solve-max-gen-label">Max Generations</label>
+          <input type="number" id="solve-max-gen" value="2000" min="1" max="50000" />
         </div>
 
-        <div class="form-group">
+        <div class="form-group" id="solve-pop-size-group">
           <label for="solve-pop-size">Population Size</label>
-          <input type="number" id="solve-pop-size" value="100" min="10" max="2000" />
+          <input type="number" id="solve-pop-size" value="200" min="10" max="2000" />
         </div>
       </div>
 
@@ -99,7 +100,7 @@
           <div class="form-group">
             <label>Speed</label>
             <div class="range-row">
-              <input type="range" id="speed-slider" min="1" max="10" value="4" />
+              <input type="range" id="speed-slider" min="1" max="10" value="2" />
               <span id="speed-val"></span>
             </div>
           </div>

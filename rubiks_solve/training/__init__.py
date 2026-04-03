@@ -1,5 +1,9 @@
 """Training infrastructure — data generation, curriculum, checkpointing, metrics."""
-from rubiks_solve.training.checkpoint import CheckpointManager, CheckpointMetadata
+try:
+    from rubiks_solve.training.checkpoint import CheckpointManager, CheckpointMetadata
+except ImportError:
+    pass  # MLX not available (e.g. DGX/Linux)
+
 from rubiks_solve.training.curriculum import CurriculumConfig, ScrambleCurriculum
 from rubiks_solve.training.data_gen import ScrambleDataset
 from rubiks_solve.training.metrics import EpochMetrics, MetricsTracker

@@ -1,0 +1,11 @@
+-r base.txt
+# PyTorch for DGX Spark (CUDA 13, aarch64).
+# Install with:
+#   pip install -r requirements/torch.txt \
+#     --extra-index-url https://download.pytorch.org/whl/cu130
+torch>=2.5
+gymnasium>=0.29
+deap>=1.4
+# Remote training delegation
+fabric>=3.2
+python-dotenv>=1.0

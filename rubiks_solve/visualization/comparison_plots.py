@@ -37,10 +37,9 @@ def _compute_metric(results: list, metric: str) -> float:
         return float(np.mean(solved)) if solved else float("nan")
     if metric == "mean_time":
         return float(np.mean([r.solve_time_seconds for r in results]))
-    else:
-        raise ValueError(
-            f"Unknown metric {metric!r}. Choose from {list(_METRIC_LABELS)}."
-        )
+    raise ValueError(
+        f"Unknown metric {metric!r}. Choose from {list(_METRIC_LABELS)}."
+    )
 
 
 def plot_solver_comparison(

@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches  # pylint: disable=consider-using-from-import
@@ -10,7 +9,7 @@ import numpy as np
 
 # Lazy import: mpl_toolkits is bundled with matplotlib but the 3-D axes are
 # registered as a side-effect of the import.
-from mpl_toolkits.mplot3d import Axes3D  # noqa: F401
+from mpl_toolkits.mplot3d import Axes3D  # noqa: F401  # pylint: disable=unused-import
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 from rubiks_solve.core.base import AbstractPuzzle

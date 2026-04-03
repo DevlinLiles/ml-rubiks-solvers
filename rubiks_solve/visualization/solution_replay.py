@@ -3,11 +3,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import matplotlib.animation as animation
+import matplotlib.animation as animation  # pylint: disable=consider-using-from-import
 import matplotlib.pyplot as plt
 
 from rubiks_solve.core.base import AbstractPuzzle, Move
-from rubiks_solve.visualization.cube_3d import render_cube_unfolded, save_or_show
+from rubiks_solve.visualization.cube_3d import render_cube_unfolded
 
 
 def animate_solution(

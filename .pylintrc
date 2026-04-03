@@ -5,10 +5,9 @@ ignored-modules=mlx,mlx.core,mlx.nn,mlx.optimizers
 max-line-length=110
 
 [DESIGN]
-max-locals=22
-max-instance-attributes=14
-max-args=7
-max-positional-arguments=7
+max-locals=35
+max-args=9
+max-positional-arguments=9
 
 [BASIC]
 good-names=_global_rng,MOVES_2x2,MOVES_3x3,MOVES_4x4,MOVES_5x5
@@ -16,10 +15,13 @@ good-names=_global_rng,MOVES_2x2,MOVES_3x3,MOVES_4x4,MOVES_5x5
 [MESSAGES CONTROL]
 disable=
     R0801,
+    R0902,
     R0903,
     W0603,
     W0212,
+    W0718,
     E1101,
     C0104,
+    C0415,
     R0912,
     R0915

@@ -83,6 +83,7 @@ class DQNTrainer:
 
     @property
     def epsilon(self) -> float:
+        """Current epsilon value for ε-greedy exploration."""
         progress = min(self._global_step / max(self.config.epsilon_decay_steps, 1), 1.0)
         return self.config.epsilon_start + progress * (
             self.config.epsilon_end - self.config.epsilon_start

@@ -50,7 +50,7 @@ def _build_solver(solver_name: str, puzzle_cls: type, time_budget: float, seed: 
         )
         return GeneticSolver(puzzle_cls, cfg)
 
-    elif solver_name == "mcts":
+    if solver_name == "mcts":
         from rubiks_solve.solvers.mcts.solver import MCTSConfig, MCTSSolver
 
         cfg = MCTSConfig(seed=seed, time_limit_seconds=time_budget)
@@ -186,7 +186,7 @@ def _run_benchmark(
     rows: list[dict] = []
     for i in range(n_puzzles):
         puzzle = solved_base.scramble(scramble_depth, rng)
-        with timer() as t:
+        with timer() as _t:
             result = solver.solve(puzzle)
 
         rows.append(

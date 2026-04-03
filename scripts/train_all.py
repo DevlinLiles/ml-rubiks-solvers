@@ -27,10 +27,9 @@ import argparse
 import logging
 import sys
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 
 logger = logging.getLogger(__name__)
@@ -52,6 +51,8 @@ DGX_SOLVERS = {"cnn", "policy", "dqn", "genetic"}
 
 @dataclass
 class JobResult:
+    """Result record for a single solver/puzzle training job."""
+
     solver: str
     puzzle: str
     backend: str
@@ -68,6 +69,7 @@ class JobResult:
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse command-line arguments for the train-all script."""
     parser = argparse.ArgumentParser(
         prog="rubiks-train-all",
         description="Train all solver/puzzle combinations locally or on the DGX Spark.",
@@ -371,6 +373,7 @@ def _print_summary(results: list[JobResult]) -> None:
 
 
 def main() -> None:
+    """Parse arguments, run all training jobs, print summary, and exit with status."""
     args = parse_args()
 
     from rubiks_solve.utils.logging_config import configure_logging

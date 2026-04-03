@@ -9,7 +9,6 @@ Usage examples::
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 from pathlib import Path
 
@@ -156,7 +155,11 @@ def _train_genetic(puzzle_cls: type, args: argparse.Namespace, logger: object) -
     solver = GeneticSolver(puzzle_cls, cfg)
 
     puzzle = puzzle_cls.solved_state().scramble(10, rng)
-    logger.info("Starting genetic training", puzzle=puzzle_cls.puzzle_name(), generations=args.epochs)  # type: ignore[union-attr]
+    logger.info(  # type: ignore[union-attr]
+        "Starting genetic training",
+        puzzle=puzzle_cls.puzzle_name(),
+        generations=args.epochs,
+    )
 
     result = solver.solve(puzzle)
     fitness_best = result.metadata.get("fitness_best_history", result.metadata.get("fitness_history", []))
@@ -277,7 +280,6 @@ def _train_policy(puzzle_cls: type, args: argparse.Namespace, logger: object) ->
         batch_size=args.n_train,
         min_depth=1,
         max_depth=args.max_scramble,
-        n_actions=n_actions,
     )
     # Drop samples where optimal move could not be determined (label == -1)
     valid = actions >= 0
@@ -312,7 +314,6 @@ def _train_dqn(puzzle_cls: type, args: argparse.Namespace, logger: object) -> pd
     Returns:
         DataFrame with columns ``epoch``, ``loss``, ``mean_q``, ``epsilon``.
     """
-    import copy
     from rubiks_solve.solvers.dqn.model import DuelingDQN
     from rubiks_solve.solvers.dqn.trainer import DQNTrainer, DQNTrainerConfig
     from rubiks_solve.encoding.registry import get_encoder
@@ -330,16 +331,19 @@ def _train_dqn(puzzle_cls: type, args: argparse.Namespace, logger: object) -> pd
             self._scramble_depth = min(args.max_scramble, puzzle_cls.move_limit())
 
         def reset(self):
+            """Return a freshly scrambled puzzle state."""
             depth = max(1, int(self._rng.integers(1, self._scramble_depth + 1)))
             return puzzle_cls.solved_state().scramble(depth, self._rng)
 
         def step(self, puzzle, move):
+            """Apply move and return (next_state, reward, done)."""
             next_puzzle = puzzle.apply_move(move)
             reward = reward_fn(puzzle, move, next_puzzle)
             done = next_puzzle.is_solved
             return next_puzzle, reward, done
 
         def legal_moves(self):
+            """Return the list of legal moves for this puzzle type."""
             return puzzle_cls.solved_state().legal_moves()
 
     env = _SimpleEnv()
@@ -447,16 +451,16 @@ def main() -> None:
 
     if args.solver == "genetic":
         metrics_df = _train_genetic(puzzle_cls, args, logger)
-        plot_col = "generation"
+        _plot_col = "generation"
     elif args.solver == "cnn":
         metrics_df = _train_cnn(puzzle_cls, args, logger)
-        plot_col = "epoch"
+        _plot_col = "epoch"
     elif args.solver == "policy":
         metrics_df = _train_policy(puzzle_cls, args, logger)
-        plot_col = "epoch"
+        _plot_col = "epoch"
     elif args.solver == "dqn":
         metrics_df = _train_dqn(puzzle_cls, args, logger)
-        plot_col = "epoch"
+        _plot_col = "epoch"
     else:
         logger.error("Solver training not yet implemented", solver=args.solver)  # type: ignore[union-attr]
         sys.exit(1)

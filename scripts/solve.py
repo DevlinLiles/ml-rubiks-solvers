@@ -154,13 +154,13 @@ def _build_solver(args: argparse.Namespace, puzzle_cls: type):
         )
         return GeneticSolver(puzzle_cls, cfg)
 
-    elif args.solver == "mcts":
+    if args.solver == "mcts":
         from rubiks_solve.solvers.mcts.solver import MCTSConfig, MCTSSolver
 
         cfg = MCTSConfig(seed=args.seed)
         return MCTSSolver(puzzle_cls, cfg)
 
-    elif args.solver == "cnn":
+    if args.solver == "cnn":
         from rubiks_solve.solvers.cnn.solver import CNNConfig, CNNSolver
         from rubiks_solve.encoding.registry import get_encoder
 

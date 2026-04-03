@@ -26,7 +26,6 @@ from __future__ import annotations
 import argparse
 import logging
 import os
-import sys
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -125,7 +124,7 @@ def _get_connection():
 # ---------------------------------------------------------------------------
 
 
-def _rsync_project(conn, local_root: Path, remote_dir: str) -> None:
+def _rsync_project(_conn, local_root: Path, remote_dir: str) -> None:
     """Push project source to the DGX Spark via rsync over SSH."""
     _load_env()
     host = _require_env("DGX_HOST")
@@ -200,7 +199,7 @@ def _build_train_cmd(venv_path: str, remote_dir: str, args: argparse.Namespace) 
     return " ".join(parts)
 
 
-def _pull_results(conn, remote_dir: str, local_output_dir: Path) -> None:
+def _pull_results(_conn, remote_dir: str, local_output_dir: Path) -> None:
     """rsync checkpoints and metrics from DGX back to local machine."""
     _load_env()
     host = _require_env("DGX_HOST")

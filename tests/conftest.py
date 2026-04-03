@@ -1,14 +1,17 @@
+"""Shared pytest fixtures for the rubiks_solve test suite."""
 import pytest
 import numpy as np
 
 
 @pytest.fixture
 def rng():
+    """Return a seeded NumPy default RNG for reproducible tests."""
     return np.random.default_rng(42)
 
 
 @pytest.fixture
 def solved_2x2():
+    """Return a solved Cube2x2 instance."""
     from rubiks_solve.core.cube_2x2 import Cube2x2
     return Cube2x2.solved_state()
 

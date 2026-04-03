@@ -175,9 +175,8 @@ def _build_solver(args: argparse.Namespace, puzzle_cls: type):
         encoder = get_encoder("one_hot", puzzle_cls)
         return CNNSolver(puzzle_cls, encoder, cfg)
 
-    else:
-        print(f"Unknown solver: {args.solver}", file=sys.stderr)
-        sys.exit(1)
+    print(f"Unknown solver: {args.solver}", file=sys.stderr)
+    sys.exit(1)
 
 
 # ---------------------------------------------------------------------------

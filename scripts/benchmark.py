@@ -56,8 +56,7 @@ def _build_solver(solver_name: str, puzzle_cls: type, time_budget: float, seed: 
         cfg = MCTSConfig(seed=seed, time_limit_seconds=time_budget)
         return MCTSSolver(puzzle_cls, cfg)
 
-    else:
-        raise ValueError(f"Unsupported solver for benchmarking: {solver_name!r}")
+    raise ValueError(f"Unsupported solver for benchmarking: {solver_name!r}")
 
 
 # ---------------------------------------------------------------------------

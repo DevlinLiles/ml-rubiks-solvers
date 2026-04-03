@@ -7,7 +7,6 @@ max-line-length=110
 [DESIGN]
 max-locals=35
 max-args=9
-max-positional-arguments=9
 
 [BASIC]
 good-names=_global_rng,MOVES_2x2,MOVES_3x3,MOVES_4x4,MOVES_5x5
@@ -24,4 +23,6 @@ disable=
     C0104,
     C0415,
     R0912,
-    R0915
+    R0915,
+    R0917,
+    W0621

@@ -44,6 +44,7 @@ def _build_puzzle_registry() -> dict[str, type]:
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse command-line arguments for the DGX PyTorch training script."""
     parser = argparse.ArgumentParser(
         prog="rubiks-train-torch",
         description="Train a solver on the DGX Spark using PyTorch.",

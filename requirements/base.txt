@@ -1,4 +1,6 @@
 numpy>=1.26
+pandas>=2.1
 scipy>=1.12
 pydantic>=2.6
 structlog>=24.1
+tqdm>=4.66

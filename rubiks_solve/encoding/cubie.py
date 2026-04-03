@@ -129,7 +129,7 @@ def _extract_3x3_cubies(
     corner_pos: list[int] = []
     corner_orient: list[int] = []
 
-    for slot, (sa, sb, sc) in enumerate(_CORNER_STICKERS):
+    for _slot, (sa, sb, sc) in enumerate(_CORNER_STICKERS):
         ca = int(state[sa[0], sa[1], sa[2]])
         cb = int(state[sb[0], sb[1], sb[2]])
         cc = int(state[sc[0], sc[1], sc[2]])
@@ -308,7 +308,7 @@ class CubieEncoder(AbstractStateEncoder):
         }
 
         parts: list[np.ndarray] = []
-        for slot, (sa, sb, sc) in enumerate(corner_stickers_2x2):
+        for _slot, (sa, sb, sc) in enumerate(corner_stickers_2x2):
             ca = int(state[sa[0], sa[1], sa[2]])
             cb = int(state[sb[0], sb[1], sb[2]])
             cc = int(state[sc[0], sc[1], sc[2]])

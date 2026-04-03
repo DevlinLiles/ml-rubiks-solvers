@@ -183,9 +183,18 @@ class PolicyTrainer:
         self.config.checkpoint_dir.mkdir(parents=True, exist_ok=True)
         history: list[dict[str, float]] = []
 
-        for epoch in range(1, self.config.epochs + 1):
+        try:
+            from tqdm import tqdm
+            epoch_bar = tqdm(range(1, self.config.epochs + 1), desc="Policy", unit="epoch", dynamic_ncols=True)
+        except ImportError:
+            epoch_bar = range(1, self.config.epochs + 1)
+
+        for epoch in epoch_bar:
             metrics = self.train_epoch(states, actions)
             history.append(metrics)
+
+            if hasattr(epoch_bar, "set_postfix"):
+                epoch_bar.set_postfix(loss=f"{metrics['loss']:.4f}", acc=f"{metrics['accuracy']:.4f}")
 
             if epoch % self.config.log_interval == 0 or epoch == self.config.epochs:
                 self._logger.info(

@@ -31,6 +31,7 @@ class SolveResult:
 
     @property
     def move_count(self) -> int:
+        """Return the number of moves in the solution sequence."""
         return len(self.moves)
 
     def verify(self, initial_puzzle: AbstractPuzzle) -> bool:
@@ -68,6 +69,7 @@ class AbstractSolver(ABC):
 
     @property
     def solver_name(self) -> str:
+        """Return the human-readable name of this solver class."""
         return self.__class__.__name__
 
     def __repr__(self) -> str:

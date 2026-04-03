@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import asyncio
+import sys
+import threading
 import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor
@@ -46,8 +48,14 @@ except ImportError:
 # ---------------------------------------------------------------------------
 
 from rubiks_solve.solvers import GeneticSolver, GeneticConfig, MCTSSolver, MCTSConfig
+from rubiks_solve.solvers.cnn import CNNSolver, CNNConfig
+from rubiks_solve.solvers.policy import PolicyNetworkSolver, PolicyConfig
+from rubiks_solve.solvers.dqn import DQNSolver, DQNConfig
+from rubiks_solve.solvers.ida_star import IDAStarSolver, IDAStarConfig
+from rubiks_solve.encoding import get_encoder
+from rubiks_solve.solvers.base import AbstractSolver
 
-_SOLVER_NAMES = ["genetic", "mcts"]
+_SOLVER_NAMES = ["genetic", "mcts", "cnn", "policy", "dqn", "ida_star"]
 
 # ---------------------------------------------------------------------------
 # App setup
@@ -56,10 +64,15 @@ _SOLVER_NAMES = ["genetic", "mcts"]
 app = FastAPI(title="Rubik's Cube ML Solver")
 
 _STATIC_DIR = Path(__file__).parent / "static"
+_MODELS_DIR = Path(__file__).parent.parent / "models"
 
 # Job storage
 _jobs: dict[str, dict[str, Any]] = {}
 _executor = ThreadPoolExecutor(max_workers=4)
+
+# ML solver cache: (model_type, puzzle_name) -> solver instance
+_ml_solver_cache: dict[tuple[str, str], AbstractSolver] = {}
+_ml_solver_lock = threading.Lock()
 
 # ---------------------------------------------------------------------------
 # Serialization helpers
@@ -67,6 +80,7 @@ _executor = ThreadPoolExecutor(max_workers=4)
 
 
 def _serialize_state(puzzle: AbstractPuzzle) -> dict:
+    """Serialize a puzzle state to a JSON-compatible dict."""
     return {
         "colors": puzzle.state.tolist(),
         "is_solved": bool(puzzle.is_solved),
@@ -74,6 +88,7 @@ def _serialize_state(puzzle: AbstractPuzzle) -> dict:
 
 
 def _serialize_move(move: Move) -> dict:
+    """Serialize a Move to a JSON-compatible dict."""
     return {
         "name": move.name,
         "face": move.face,
@@ -81,6 +96,83 @@ def _serialize_move(move: Move) -> dict:
         "direction": move.direction,
         "double": move.double,
     }
+
+
+# ---------------------------------------------------------------------------
+# ML solver helpers
+# ---------------------------------------------------------------------------
+
+
+def _latest_ckpt(model_type: str, puzzle_name: str) -> Path | None:
+    """Return the path to the latest checkpoint for *model_type* / *puzzle_name*.
+
+    ``ida_star`` uses ADI-trained weights from ``models/cnn_adi/<puzzle>/``,
+    falling back to the base CNN if no ADI checkpoint exists.
+    All other model types look under ``models/<model_type>/<puzzle>/``.
+    Returns ``None`` when no checkpoint is found.
+    """
+    if model_type == "ida_star":
+        # Prefer ADI-trained weights; fall back to base CNN.
+        for base in ("cnn_adi", "cnn"):
+            model_dir = _MODELS_DIR / base / puzzle_name
+            if model_dir.exists():
+                ckpts = sorted(model_dir.glob("ckpt_*.npz"))
+                if ckpts:
+                    return ckpts[-1]
+        return None
+
+    model_dir = _MODELS_DIR / model_type
+    if puzzle_name != "3x3":
+        model_dir = model_dir / puzzle_name
+    if not model_dir.exists():
+        return None
+    ckpts = sorted(model_dir.glob("ckpt_*.npz"))
+    return ckpts[-1] if ckpts else None
+
+
+def _get_ml_solver(
+    model_type: str,
+    puzzle_name: str,
+    puzzle_cls: type[AbstractPuzzle],
+) -> AbstractSolver | None:
+    """Return a cached MLX solver for *model_type* / *puzzle_name*, building
+    it on first access.  Returns ``None`` when no checkpoint is available.
+    """
+    key = (model_type, puzzle_name)
+    with _ml_solver_lock:
+        if key not in _ml_solver_cache:
+            ckpt = _latest_ckpt(model_type, puzzle_name)
+            if ckpt is None:
+                return None
+            encoder = get_encoder("one_hot", puzzle_cls)
+            if model_type == "cnn":
+                cfg = CNNConfig(
+                    model_path=ckpt,
+                    beam_width=1024,
+                    max_depth=puzzle_cls.move_limit() * 10,
+                )
+                solver: AbstractSolver = CNNSolver(puzzle_cls, encoder, cfg)
+            elif model_type == "policy":
+                cfg = PolicyConfig(model_path=ckpt, deterministic=True)
+                solver = PolicyNetworkSolver(puzzle_cls, encoder, cfg)
+            elif model_type == "dqn":
+                cfg = DQNConfig(
+                    model_path=ckpt,
+                    max_steps=puzzle_cls.move_limit() * 10,
+                )
+                solver = DQNSolver(puzzle_cls, encoder, cfg)
+            elif model_type == "ida_star":
+                cfg = IDAStarConfig(
+                    model_path=ckpt,
+                    max_depth=puzzle_cls.move_limit() + 10,
+                    heuristic_weight=0.85,
+                    time_limit_seconds=60.0,
+                )
+                solver = IDAStarSolver(puzzle_cls, encoder, cfg)
+            else:
+                return None
+            _ml_solver_cache[key] = solver
+        return _ml_solver_cache.get(key)
 
 
 # ---------------------------------------------------------------------------
@@ -97,6 +189,7 @@ def _run_solve_job(
     max_generations: int,
     population_size: int,
 ) -> None:
+    """Background worker: run a solve job and store the result in _jobs."""
     try:
         puzzle_cls = _PUZZLE_REGISTRY[puzzle_name]
         rng = np.random.default_rng(seed)
@@ -127,13 +220,17 @@ def _run_solve_job(
 
         # Build and run solver
         if solver_name == "genetic":
-            cfg = GeneticConfig(
-                max_generations=max_generations,
-                population_size=population_size,
-                max_chromosome_length=puzzle_cls.move_limit(),
-                seed=seed,
-            )
-            solver = GeneticSolver(puzzle_cls, cfg)
+            # Use the policy network for a fast single-forward-pass-per-step
+            # rollout; fall back to the GA when no checkpoint exists.
+            solver = _get_ml_solver("policy", puzzle_name, puzzle_cls)
+            if solver is None:
+                cfg = GeneticConfig(
+                    max_generations=max_generations,
+                    population_size=population_size,
+                    max_chromosome_length=puzzle_cls.move_limit(),
+                    seed=seed,
+                )
+                solver = GeneticSolver(puzzle_cls, cfg)
         elif solver_name == "mcts":
             cfg = MCTSConfig(
                 n_simulations=500_000,
@@ -141,17 +238,45 @@ def _run_solve_job(
                 seed=seed,
             )
             solver = MCTSSolver(puzzle_cls, cfg)
+        elif solver_name == "cnn":
+            solver = _get_ml_solver("cnn", puzzle_name, puzzle_cls)
+            if solver is None:
+                raise ValueError(f"No CNN checkpoint found for puzzle '{puzzle_name}'")
+        elif solver_name == "policy":
+            solver = _get_ml_solver("policy", puzzle_name, puzzle_cls)
+            if solver is None:
+                raise ValueError(f"No policy checkpoint found for puzzle '{puzzle_name}'")
+        elif solver_name == "dqn":
+            solver = _get_ml_solver("dqn", puzzle_name, puzzle_cls)
+            if solver is None:
+                raise ValueError(f"No DQN checkpoint found for puzzle '{puzzle_name}'")
+        elif solver_name == "ida_star":
+            solver = _get_ml_solver("ida_star", puzzle_name, puzzle_cls)
+            if solver is None:
+                raise ValueError(f"No IDA* checkpoint found for puzzle '{puzzle_name}'")
         else:
             raise ValueError(f"Unknown solver: {solver_name}")
 
         result = solver.solve(scrambled)
 
-        # Collect solve states for animation
+        move_budget = puzzle_cls.move_limit() * 5
+        print(
+            f"[solve] puzzle={puzzle_name} solver={solver_name} scramble={scramble_depth} "
+            f"solved={result.solved} moves={result.move_count} "
+            f"iterations={result.iterations} budget={move_budget} "
+            f"meta={result.metadata}",
+            file=sys.stderr,
+            flush=True,
+        )
+
+        # Collect solve states for animation — stop at solved or 5x move_limit
         solve_states: list[dict] = [_serialize_state(scrambled)]
         replay = scrambled
-        for m in result.moves:
+        for m in result.moves[:move_budget]:
             replay = replay.apply_move(m)
             solve_states.append(_serialize_state(replay))
+            if replay.is_solved:
+                break
 
         _jobs[job_id].update(
             {
@@ -170,18 +295,19 @@ def _run_solve_job(
                 },
             }
         )
-    except Exception as exc:
+    except Exception as exc:  # pylint: disable=broad-exception-caught
         _jobs[job_id].update({"status": "error", "error": str(exc)})
 
 
 def _run_train_job(
     job_id: str,
     puzzle_name: str,
-    solver_name: str,
+    _solver_name: str,
     epochs: int,
     seed: int,
     scramble_depth: int,
 ) -> None:
+    """Background worker: run a training job and store the result in _jobs."""
     try:
         puzzle_cls = _PUZZLE_REGISTRY[puzzle_name]
         rng = np.random.default_rng(seed)
@@ -208,7 +334,7 @@ def _run_train_job(
                 "control_fitness_history": meta.get("control_fitness_history", []),
             }
         )
-    except Exception as exc:
+    except Exception as exc:  # pylint: disable=broad-exception-caught
         _jobs[job_id].update({"status": "error", "error": str(exc)})
 
 
@@ -219,15 +345,25 @@ def _run_train_job(
 
 @app.get("/api/puzzles")
 async def get_puzzles() -> list[str]:
+    """Return the list of supported puzzle names."""
     return list(_PUZZLE_REGISTRY.keys())
+
+
+@app.get("/api/move_limits")
+async def get_move_limits() -> dict[str, int]:
+    """Return the move limit for each puzzle type."""
+    return {name: cls.move_limit() for name, cls in _PUZZLE_REGISTRY.items()}
 
 
 @app.get("/api/solvers")
 async def get_solvers() -> list[str]:
+    """Return the list of available solver names."""
     return _SOLVER_NAMES
 
 
 class SolveRequest(BaseModel):
+    """Request body for the /api/solve endpoint."""
+
     puzzle: str
     solver: str
     scramble_depth: int = 5
@@ -238,6 +374,7 @@ class SolveRequest(BaseModel):
 
 @app.post("/api/solve")
 async def start_solve(req: SolveRequest) -> dict:
+    """Start a background solve job and return its job_id."""
     if req.puzzle not in _PUZZLE_REGISTRY:
         raise HTTPException(status_code=400, detail=f"Unknown puzzle: {req.puzzle}")
     if req.solver not in _SOLVER_NAMES:
@@ -264,12 +401,15 @@ async def start_solve(req: SolveRequest) -> dict:
 
 @app.get("/api/solve/{job_id}")
 async def get_solve_result(job_id: str) -> dict:
+    """Return the current status or result of a solve job."""
     if job_id not in _jobs:
         raise HTTPException(status_code=404, detail="Job not found")
     return _jobs[job_id]
 
 
 class TrainRequest(BaseModel):
+    """Request body for the /api/train endpoint."""
+
     puzzle: str
     solver: str = "genetic"
     epochs: int = 200
@@ -279,6 +419,7 @@ class TrainRequest(BaseModel):
 
 @app.post("/api/train")
 async def start_train(req: TrainRequest) -> dict:
+    """Start a background training job and return its job_id."""
     if req.puzzle not in _PUZZLE_REGISTRY:
         raise HTTPException(status_code=400, detail=f"Unknown puzzle: {req.puzzle}")
 
@@ -302,6 +443,7 @@ async def start_train(req: TrainRequest) -> dict:
 
 @app.get("/api/train/{job_id}")
 async def get_train_result(job_id: str) -> dict:
+    """Return the current status or result of a training job."""
     if job_id not in _jobs:
         raise HTTPException(status_code=404, detail="Job not found")
     return _jobs[job_id]
@@ -314,6 +456,7 @@ async def get_train_result(job_id: str) -> dict:
 # Serve index.html at root
 @app.get("/")
 async def serve_root():
+    """Serve the main index.html page."""
     return FileResponse(_STATIC_DIR / "index.html")
 
 

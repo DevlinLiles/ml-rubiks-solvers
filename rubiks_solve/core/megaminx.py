@@ -364,7 +364,7 @@ def _build_moves() -> list[Move]:
         List of Move objects covering every face in both directions.
     """
     moves: list[Move] = []
-    for face_idx, face_name in enumerate(_FACE_NAMES):
+    for _, face_name in enumerate(_FACE_NAMES):
         cw_move = Move(
             name=f"{face_name}+",
             face=face_name,

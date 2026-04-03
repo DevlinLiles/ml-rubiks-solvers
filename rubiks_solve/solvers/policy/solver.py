@@ -93,7 +93,7 @@ class PolicyNetworkSolver(AbstractSolver):
               taken, as a list of floats indexed by move index.
         """
         config: PolicyConfig = self.config
-        max_steps = self.puzzle_type.move_limit()
+        max_steps = self.puzzle_type.move_limit() * 5
         rng = np.random.default_rng()
 
         start_time = time.perf_counter()

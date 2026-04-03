@@ -5,7 +5,7 @@ Classical analog: CFOP (cross -> F2L -> OLL -> PLL), each stage a different solv
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 from rubiks_solve.core.base import AbstractPuzzle

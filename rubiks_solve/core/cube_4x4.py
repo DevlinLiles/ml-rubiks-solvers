@@ -11,6 +11,7 @@ from typing import Optional
 import numpy as np
 
 from rubiks_solve.core.cube_nnn import CubeNNN
+from rubiks_solve.core.validator import has_parity_error as _has_parity
 
 
 class Cube4x4(CubeNNN):
@@ -90,5 +91,4 @@ class Cube4x4(CubeNNN):
             True if a parity error is detected, False otherwise.  May return
             False negatives for complex scrambles (simplified heuristic).
         """
-        from rubiks_solve.core.validator import has_parity_error as _has_parity
         return _has_parity(self)

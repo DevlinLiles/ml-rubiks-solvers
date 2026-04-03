@@ -12,6 +12,7 @@ from typing import Optional
 import numpy as np
 
 from rubiks_solve.core.cube_nnn import CubeNNN
+from rubiks_solve.core.validator import has_parity_error as _has_parity
 
 
 class Cube5x5(CubeNNN):
@@ -82,5 +83,4 @@ class Cube5x5(CubeNNN):
         Returns:
             True if a parity error is detected, False otherwise.
         """
-        from rubiks_solve.core.validator import has_parity_error as _has_parity
         return _has_parity(self)

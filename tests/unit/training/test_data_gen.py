@@ -1,15 +1,16 @@
 """Tests for the ScrambleDataset training data generator."""
+# pylint: disable=redefined-outer-name
 from __future__ import annotations
 
 import numpy as np
 import pytest
 
+from rubiks_solve.core.cube_3x3 import Cube3x3
 from rubiks_solve.training.data_gen import ScrambleDataset
 from rubiks_solve.encoding.one_hot import OneHotEncoder
 
 
 def _make_dataset(seed: int = 42) -> ScrambleDataset:
-    from rubiks_solve.core.cube_3x3 import Cube3x3
     encoder = OneHotEncoder(Cube3x3)
     rng = np.random.default_rng(seed)
     return ScrambleDataset(
@@ -26,7 +27,6 @@ def dataset():
 
 @pytest.fixture
 def encoder():
-    from rubiks_solve.core.cube_3x3 import Cube3x3
     return OneHotEncoder(Cube3x3)
 
 
@@ -87,7 +87,6 @@ def test_same_seed_same_batch():
 
 def test_policy_batch_move_indices_valid(dataset):
     """All action indices must be within [0, n_legal_moves) or -1."""
-    from rubiks_solve.core.cube_3x3 import Cube3x3
     n_actions = len(Cube3x3.solved_state().legal_moves())
     _, labels = dataset.generate_policy_batch(batch_size=50, min_depth=1, max_depth=5,
                                                n_actions=n_actions)
@@ -98,7 +97,6 @@ def test_policy_batch_move_indices_valid(dataset):
 
 def test_policy_batch_shapes(dataset, encoder):
     """generate_policy_batch returns correct shapes."""
-    from rubiks_solve.core.cube_3x3 import Cube3x3
     n_actions = len(Cube3x3.solved_state().legal_moves())
     batch_size = 20
     states, labels = dataset.generate_policy_batch(
@@ -110,7 +108,6 @@ def test_policy_batch_shapes(dataset, encoder):
 
 def test_policy_batch_labels_dtype(dataset):
     """Policy batch labels must be int64."""
-    from rubiks_solve.core.cube_3x3 import Cube3x3
     n_actions = len(Cube3x3.solved_state().legal_moves())
     _, labels = dataset.generate_policy_batch(batch_size=5, n_actions=n_actions)
     assert labels.dtype == np.int64

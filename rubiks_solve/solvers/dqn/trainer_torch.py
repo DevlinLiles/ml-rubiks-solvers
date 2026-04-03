@@ -9,9 +9,13 @@ from typing import Any
 
 import numpy as np
 import torch
-import torch.nn as nn
+from torch import nn, optim
 import torch.nn.functional as F
-import torch.optim as optim
+
+try:
+    from tqdm import tqdm as _tqdm
+except ImportError:
+    _tqdm = None
 
 from rubiks_solve.encoding.base import AbstractStateEncoder
 from rubiks_solve.solvers.dqn.model_torch import DuelingDQN
@@ -133,7 +137,8 @@ class DQNTrainer:
             else:
                 self.model.eval()
                 with torch.no_grad():
-                    x = torch.from_numpy(encoded[np.newaxis, :].astype(np.float32)).to(self.device, non_blocking=True)
+                    x_enc = torch.from_numpy(encoded[np.newaxis, :].astype(np.float32))
+                    x = x_enc.to(self.device, non_blocking=True)
                     q_vals = self.model(x)
                 action_idx = int(q_vals.argmax(dim=-1).item())
 
@@ -172,10 +177,11 @@ class DQNTrainer:
         self.config.checkpoint_dir.mkdir(parents=True, exist_ok=True)
         history: list[dict[str, float]] = []
 
-        try:
-            from tqdm import tqdm
-            epoch_bar = tqdm(range(1, self.config.epochs + 1), desc="DQN", unit="epoch", dynamic_ncols=True)
-        except ImportError:
+        if _tqdm is not None:
+            epoch_bar = _tqdm(
+                range(1, self.config.epochs + 1), desc="DQN", unit="epoch", dynamic_ncols=True
+            )
+        else:
             epoch_bar = range(1, self.config.epochs + 1)
 
         for epoch in epoch_bar:

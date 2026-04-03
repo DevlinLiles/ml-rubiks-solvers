@@ -3,9 +3,42 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
+
+
+class DGXConfig(BaseModel):
+    """Connection settings for the NVIDIA DGX Spark training backend.
+
+    These values can also be provided via environment variables (see .env.example).
+    Environment variables take precedence over config-file values when using
+    scripts/remote_train.py, which reads the .env file directly.
+
+    Attributes:
+        host:            Tailscale hostname or IP of the DGX Spark unit.
+        user:            SSH login username.
+        remote_dir:      Absolute path on the DGX where the project is synced.
+        venv_path:       Absolute path to the Python venv on the DGX.
+        torch_index_url: PyTorch wheel index URL for CUDA 13 / aarch64.
+    """
+
+    host: str = "msp-spark-01.tail521f18.ts.net"
+    user: str = ""
+    remote_dir: str = "~/rubiks-solve"
+    venv_path: str = "~/rubiks-venv"
+    torch_index_url: str = "https://download.pytorch.org/whl/cu130"
+
+
+class ComputeConfig(BaseModel):
+    """Compute backend selection.
+
+    Attributes:
+        backend: ``'local'`` uses the MLX-based trainers on Apple Silicon.
+                 ``'dgx'`` delegates training to the DGX Spark via SSH.
+    """
+
+    backend: Literal["local", "dgx"] = "local"
 
 
 class LoggingConfig(BaseModel):
@@ -62,11 +95,15 @@ class AppConfig(BaseModel):
         logging:   Logging settings.
         training:  Training settings.
         benchmark: Benchmark settings.
+        compute:   Backend selection (local MLX or DGX Spark).
+        dgx:       DGX Spark connection settings.
     """
 
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
     training: TrainingConfig = Field(default_factory=TrainingConfig)
     benchmark: BenchmarkConfig = Field(default_factory=BenchmarkConfig)
+    compute: ComputeConfig = Field(default_factory=ComputeConfig)
+    dgx: DGXConfig = Field(default_factory=DGXConfig)
 
     @classmethod
     def from_file(cls, path: Path) -> "AppConfig":

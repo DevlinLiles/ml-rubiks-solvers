@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import torch
-import torch.nn as nn
+from torch import nn
 import torch.nn.functional as F
 
 
@@ -43,4 +43,5 @@ class CubePolicyNet(nn.Module):
         self.net = nn.Sequential(*layers)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Forward pass: return log-probabilities over all legal moves."""
         return F.log_softmax(self.net(x), dim=-1)

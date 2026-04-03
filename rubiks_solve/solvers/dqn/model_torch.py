@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import torch
-import torch.nn as nn
+from torch import nn
 
 
 class DuelingDQN(nn.Module):
@@ -37,6 +37,7 @@ class DuelingDQN(nn.Module):
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Forward pass: return Q-values for each action using dueling architecture."""
         h = self.trunk(x)
         v = self.value_stream(h)                          # (..., 1)
         a = self.advantage_stream(h)                      # (..., n_actions)

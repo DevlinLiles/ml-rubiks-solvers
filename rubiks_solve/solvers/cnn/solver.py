@@ -166,9 +166,11 @@ class CNNSolver(AbstractSolver):
             ]
 
         elapsed = time.perf_counter() - start_time
+        # Return the best partial path from the final beam (lowest estimated value).
+        best_node = min(beam, key=lambda n: n.value)
         return SolveResult(
             solved=False,
-            moves=[],
+            moves=best_node.moves,
             solve_time_seconds=elapsed,
             iterations=config.max_depth,
             metadata={

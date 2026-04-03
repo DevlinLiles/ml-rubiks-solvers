@@ -1,10 +1,8 @@
 """DQN trainer with epsilon-greedy exploration, experience replay, and target network."""
 from __future__ import annotations
 
-import copy
 import logging
-import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -44,7 +42,7 @@ class DQNTrainerConfig:
         log_interval:        Log metrics every this many epochs.
     """
 
-    learning_rate: float = 1e-4
+    learning_rate: float = 5e-5
     batch_size: int = 256
     gamma: float = 0.99
     epsilon_start: float = 1.0
@@ -57,6 +55,7 @@ class DQNTrainerConfig:
     steps_per_epoch: int = 1_000
     checkpoint_dir: Path = Path("models/dqn")
     log_interval: int = 10
+    max_grad_norm: float = 1.0
 
 
 class DQNTrainer:
@@ -165,11 +164,12 @@ class DQNTrainer:
             row_idx = mx.arange(batch_size)
             # MLX uses fancy indexing: q_all[row_idx, a_]
             q_selected = q_all[row_idx, a_]  # (batch,)
-            loss = nn.losses.mse_loss(q_selected, t_, reduction="mean")
+            loss = nn.losses.huber_loss(q_selected, t_, reduction="mean")
             return loss
 
         loss_and_grad_fn = nn.value_and_grad(self.model, loss_fn)
         loss_val, grads = loss_and_grad_fn(self.model, x, a, targets)
+        grads, _ = optim.clip_grad_norm(grads, max_norm=self.config.max_grad_norm)
         self.optimizer.update(self.model, grads)
 
         # Mean Q for diagnostics (reuse forward pass).
@@ -184,7 +184,7 @@ class DQNTrainer:
             "mean_q": float(mean_q),
         }
 
-    def train_epoch(self, epoch: int) -> dict[str, float]:
+    def train_epoch(self, _epoch: int) -> dict[str, float]:
         """Run ``config.steps_per_epoch`` environment steps and gradient updates.
 
         Each step:
@@ -271,9 +271,22 @@ class DQNTrainer:
         self.config.checkpoint_dir.mkdir(parents=True, exist_ok=True)
         history: list[dict[str, float]] = []
 
-        for epoch in range(1, self.config.epochs + 1):
+        try:
+            from tqdm import tqdm
+            epoch_bar = tqdm(range(1, self.config.epochs + 1), desc="DQN", unit="epoch", dynamic_ncols=True)
+        except ImportError:
+            epoch_bar = range(1, self.config.epochs + 1)
+
+        for epoch in epoch_bar:
             metrics = self.train_epoch(epoch)
             history.append(metrics)
+
+            if hasattr(epoch_bar, "set_postfix"):
+                epoch_bar.set_postfix(
+                    loss=f"{metrics['loss']:.4f}",
+                    q=f"{metrics['mean_q']:.4f}",
+                    eps=f"{metrics['epsilon']:.3f}",
+                )
 
             if epoch % self.config.log_interval == 0 or epoch == self.config.epochs:
                 self._logger.info(

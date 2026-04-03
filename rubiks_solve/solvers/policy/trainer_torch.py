@@ -8,8 +8,12 @@ from pathlib import Path
 
 import numpy as np
 import torch
-import torch.nn as nn
-import torch.optim as optim
+from torch import nn, optim
+
+try:
+    from tqdm import tqdm as _tqdm
+except ImportError:
+    _tqdm = None
 
 from rubiks_solve.solvers.policy.model_torch import CubePolicyNet
 
@@ -117,10 +121,11 @@ class PolicyTrainer:
         states_t = torch.from_numpy(states).to(self.device)
         actions_t = torch.from_numpy(actions.astype(np.int64)).to(self.device)
 
-        try:
-            from tqdm import tqdm
-            epoch_bar = tqdm(range(1, self.config.epochs + 1), desc="Policy", unit="epoch", dynamic_ncols=True)
-        except ImportError:
+        if _tqdm is not None:
+            epoch_bar = _tqdm(
+                range(1, self.config.epochs + 1), desc="Policy", unit="epoch", dynamic_ncols=True
+            )
+        else:
             epoch_bar = range(1, self.config.epochs + 1)
 
         for epoch in epoch_bar:

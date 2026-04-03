@@ -25,7 +25,7 @@ const FACE_COLORS = [
 
 // BoxGeometry face → axis/sign for move animation
 const FACE_AXIS = { U: 'y', D: 'y', F: 'z', B: 'z', L: 'x', R: 'x' };
-const FACE_SIGN = { U: +1, D: -1, F: -1, B: +1, L: +1, R: -1 };
+const FACE_SIGN = { U: -1, D: +1, F: -1, B: +1, L: +1, R: -1 };
 
 /**
  * Given a face and moveLayer, return which grid coordinate value cubies must
@@ -217,7 +217,7 @@ class RubiksCube3D {
           );
 
           this.scene.add(mesh);
-          this.cubies.push({ mesh, gridPos: { ix, iy, iz } });
+          this.cubies.push({ mesh, gridPos: { ix, iy, iz }, _ix0: ix, _iy0: iy, _iz0: iz });
         }
       }
     }
@@ -242,6 +242,31 @@ class RubiksCube3D {
     }
   }
 
+  /**
+   * Reset every cubie to its initial solved-state world position and orientation.
+   * Must be called before setState() whenever jumping to an arbitrary step, so
+   * that gridPos values are valid for the next animateMove() call.
+   */
+  resetPositions() {
+    // Flush any cubies still parented to the pivot group from an interrupted animation.
+    while (this.pivotGroup.children.length > 0) {
+      this.scene.attach(this.pivotGroup.children[0]);
+    }
+    this.pivotGroup.rotation.set(0, 0, 0);
+
+    const gap = 1.02;
+    const half = (this.n - 1) / 2;
+    for (const cubie of this.cubies) {
+      const { mesh, _ix0: ix, _iy0: iy, _iz0: iz } = cubie;
+      if (mesh.parent !== this.scene) this.scene.attach(mesh);
+      mesh.position.set((ix - half) * gap, (iy - half) * gap, (iz - half) * gap);
+      mesh.quaternion.set(0, 0, 0, 1);
+      cubie.gridPos.ix = ix;
+      cubie.gridPos.iy = iy;
+      cubie.gridPos.iz = iz;
+    }
+  }
+
   // ---------------------------------------------------------------------------
   // Move animation
   // ---------------------------------------------------------------------------
@@ -262,18 +287,35 @@ class RubiksCube3D {
       const sign = FACE_SIGN[face] !== undefined ? FACE_SIGN[face] : +1;
       const targetAngle = sign * (isDouble ? Math.PI : Math.PI / 2) * direction;
 
-      const gridVal = layerGridIndex(face, layer, n);
+      // layer === -1 means whole-cube rotation (x/y/z) — animate every cubie.
+      let layerCubies;
+      if (layer === -1) {
+        layerCubies = [...this.cubies];
+      } else {
+        const gridVal = layerGridIndex(face, layer, n);
+        layerCubies = this.cubies.filter(({ gridPos: { ix, iy, iz } }) => {
+          if (axis === 'x') return ix === gridVal;
+          if (axis === 'y') return iy === gridVal;
+          if (axis === 'z') return iz === gridVal;
+          return false;
+        });
+      }
 
-      // Collect cubies in this layer
-      const layerCubies = this.cubies.filter(({ gridPos: { ix, iy, iz } }) => {
-        if (axis === 'x') return ix === gridVal;
-        if (axis === 'y') return iy === gridVal;
-        if (axis === 'z') return iz === gridVal;
-        return false;
-      });
+      // Diagnostic: log move details and cubie count so direction mismatches are visible.
+      const moveName = moveData.name || `${face}${direction < 0 ? "'" : isDouble ? '2' : ''}`;
+      console.log(
+        `[cube3d] ${moveName}  axis=${axis}  angle=${(targetAngle * 180 / Math.PI).toFixed(0)}°` +
+        `  layer=${layer}  cubies=${layerCubies.length}/${this.cubies.length}`
+      );
+
+      // Capture pre-animation grid positions for post-move verification logging.
+      const prePos = layerCubies.map(c => ({ ix: c.gridPos.ix, iy: c.gridPos.iy, iz: c.gridPos.iz }));
 
       if (layerCubies.length === 0) {
-        if (newState) this.setState(newState.colors);
+        if (newState) {
+          const colors = Array.isArray(newState) ? newState : newState.colors;
+          if (colors) this.setState(colors);
+        }
         resolve();
         return;
       }
@@ -306,7 +348,11 @@ class RubiksCube3D {
           }
           this.pivotGroup.rotation.set(0, 0, 0);
 
-          // Snap positions to integers
+          // Snap positions to integers and reset quaternion.
+          // Resetting the quaternion is critical: BoxGeometry material slots are
+          // in local space, so a rotated mesh maps slot 2 (+Y local) to a
+          // different world direction.  setState() assumes local axes == world
+          // axes, so we must realign before repainting colors.
           for (const cubie of layerCubies) {
             const p = cubie.mesh.position;
             const gap = 1.02;
@@ -318,11 +364,34 @@ class RubiksCube3D {
             cubie.gridPos.ix = Math.round(p.x / gap + half);
             cubie.gridPos.iy = Math.round(p.y / gap + half);
             cubie.gridPos.iz = Math.round(p.z / gap + half);
+            // Re-align local axes with world axes so setState() paints the
+            // correct material slot for each visible face.
+            cubie.mesh.quaternion.set(0, 0, 0, 1);
           }
 
-          // Apply final state colors
-          if (newState && newState.colors) {
-            this.setState(newState.colors);
+          // Verification log: compare physical cubie movement with model state.
+          // For a U CW move, expect e.g. (0,n-1,0)→(0,n-1,n-1) meaning L-back→L-front.
+          // Open browser console, step through a U move, and check:
+          //   1. Physical moves shown here match expected CW positions.
+          //   2. Model U face row 0 (back row) printed below should shift consistently.
+          const sampleSize = Math.min(4, layerCubies.length);
+          const sampleMoves = layerCubies.slice(0, sampleSize).map((c, i) => {
+            const p = prePos[i];
+            return `(${p.ix},${p.iy},${p.iz})→(${c.gridPos.ix},${c.gridPos.iy},${c.gridPos.iz})`;
+          }).join('  ');
+          console.log(`  [cube3d] sample gridPos: ${sampleMoves}`);
+
+          const colors0 = newState ? (Array.isArray(newState) ? newState : newState.colors) : null;
+          if (colors0) {
+            // Log the U face top row (row 0 = back row) from the model state.
+            console.log(`  [cube3d] model U[0] (back): ${JSON.stringify(colors0[0][0])}`);
+            console.log(`  [cube3d] model U[${n-1}] (front): ${JSON.stringify(colors0[0][n - 1])}`);
+          }
+
+          // Apply final state colors (accepts either a colors array or {colors} object)
+          if (newState) {
+            const colors = Array.isArray(newState) ? newState : newState.colors;
+            if (colors) this.setState(colors);
           }
 
           resolve();

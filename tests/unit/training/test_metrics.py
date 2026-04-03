@@ -1,9 +1,9 @@
 """Tests for the MetricsTracker training metrics system."""
+# pylint: disable=redefined-outer-name
 from __future__ import annotations
 
 import json
 import tempfile
-from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -16,6 +16,7 @@ from rubiks_solve.training.metrics import EpochMetrics, MetricsTracker
 # ---------------------------------------------------------------------------
 
 def _make_metrics(epoch: int, solve_rate: float = 0.5, loss: float = 1.0) -> EpochMetrics:
+    """Build a minimal EpochMetrics instance for testing."""
     return EpochMetrics(
         epoch=epoch,
         loss=loss,

@@ -115,6 +115,16 @@ def parse_args() -> argparse.Namespace:
         default=512,
         help="Mini-batch size for neural network training.",
     )
+    parser.add_argument(
+        "--backend",
+        choices=["local", "dgx"],
+        default="local",
+        help=(
+            "'local' runs training on this machine using MLX (Apple Silicon). "
+            "'dgx' delegates training to the DGX Spark (MSP-SPARK-01) via SSH using PyTorch. "
+            "Credentials are read from the .env file (see .env.example)."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -307,10 +317,9 @@ def _train_dqn(puzzle_cls: type, args: argparse.Namespace, logger: object) -> pd
     from rubiks_solve.solvers.dqn.trainer import DQNTrainer, DQNTrainerConfig
     from rubiks_solve.encoding.registry import get_encoder
     from rubiks_solve.utils.rng import make_rng
-    from rubiks_solve.env.reward import DenseReward
-
     encoder = get_encoder("one_hot", puzzle_cls)
     rng = make_rng(args.seed)
+    from rubiks_solve.env.reward import DenseReward
     reward_fn = DenseReward()
 
     # Lightweight env adapter: DQNTrainer calls reset() -> puzzle,
@@ -341,12 +350,15 @@ def _train_dqn(puzzle_cls: type, args: argparse.Namespace, logger: object) -> pd
     target_model = DuelingDQN(input_size=input_size, n_actions=n_actions)
 
     checkpoint_dir = args.output_dir / "dqn" / puzzle_cls.puzzle_name()
+    steps_per_epoch = max(500, args.n_train // args.epochs)
     trainer_cfg = DQNTrainerConfig(
         epochs=args.epochs,
         batch_size=args.batch_size,
-        steps_per_epoch=max(500, args.n_train // args.epochs),
-        min_replay_size=min(500, args.n_train // 10),
-        epsilon_decay_steps=args.epochs * max(500, args.n_train // args.epochs),
+        steps_per_epoch=steps_per_epoch,
+        min_replay_size=min(2000, args.n_train // 10),
+        epsilon_decay_steps=args.epochs * steps_per_epoch,
+        replay_buffer_size=min(100_000, max(50_000, args.n_train // 10)),
+        target_update_freq=steps_per_epoch,
         checkpoint_dir=checkpoint_dir,
     )
     trainer = DQNTrainer(online_model, target_model, env, trainer_cfg, encoder)
@@ -387,6 +399,31 @@ def main() -> None:
             args.seed = app_cfg.training.seed
         if args.output_dir == Path("models"):
             args.output_dir = app_cfg.training.checkpoint_dir
+        # Config file may set backend; CLI --backend flag overrides it.
+        if args.backend == "local" and app_cfg.compute.backend == "dgx":
+            args.backend = "dgx"
+
+    # --- DGX delegation ---
+    # When --backend dgx is requested, hand off to remote_train.delegate() and exit.
+    if args.backend == "dgx":
+        if args.solver in ("genetic", "mcts"):
+            logger.warning(  # type: ignore[union-attr]
+                "DGX backend does not support solver '%s' — falling back to local.",
+                args.solver,
+            )
+            args.backend = "local"
+        else:
+            logger.info(  # type: ignore[union-attr]
+                "Delegating training to DGX Spark",
+                host="msp-spark-01.tail521f18.ts.net",
+                solver=args.solver,
+                puzzle=args.puzzle,
+            )
+            sys.path.insert(0, str(Path(__file__).parent))
+            from remote_train import delegate  # type: ignore[import]
+
+            delegate(args)
+            return
 
     # Set global seed
     from rubiks_solve.utils.rng import set_global_seed

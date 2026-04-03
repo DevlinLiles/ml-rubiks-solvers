@@ -108,24 +108,24 @@ def has_parity_error(puzzle: AbstractPuzzle) -> bool:
     # This is a simplified check looking at adjacent faces sharing an edge.
 
     # Check top/bottom strips of F, B faces
-    for face_idx, opp_row_u, opp_row_d in [(2, 0, n - 1), (3, 0, n - 1)]:
+    for face_idx, _opp_row_u, _opp_row_d in [(2, 0, n - 1), (3, 0, n - 1)]:
         # F face top edge: U face bottom row meets F face top row
         # Inner stickers: cols in inner_indices
         for col in inner_indices:
-            u_sticker = int(state[0, n - 1, col])   # U face bottom row
-            f_sticker = int(state[face_idx, 0, col])  # F/B face top row
+            _u_sticker = int(state[0, n - 1, col])   # U face bottom row
+            _f_sticker = int(state[face_idx, 0, col])  # F/B face top row
             # They don't need to match each other, but pairs within the same
             # dedge do.  A dedge on 4x4 has two wing stickers on U bottom.
-            pass  # full pair-matching omitted; see note in docstring
+            # full pair-matching omitted; see note in docstring
 
     # Practical heuristic: count edges where inner-ring stickers of the same
     # physical edge are not both the same colour as their face.
     # This catches obvious parity errors (e.g. single dedge flip) but not all.
-    for face in range(6):
-        for idx in inner_indices:
+    for _face in range(6):
+        for _idx in inner_indices:
             # Check that inner row stickers match the face centre
             # (only valid when close to solved; otherwise this is meaningless)
-            pass
+            pass  # full implementation omitted; see note in docstring
 
     # Simplified implementation: always return False (conservative).
     # A real implementation would track permutation parity across move sequences.

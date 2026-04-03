@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import torch
-import torch.nn as nn
+from torch import nn
 
 
 class CubeValueNet(nn.Module):
@@ -44,4 +44,5 @@ class CubeValueNet(nn.Module):
         self.net = nn.Sequential(*layers)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Forward pass: return scalar value estimate for each input state."""
         return self.net(x)

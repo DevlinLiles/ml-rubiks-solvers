@@ -107,7 +107,7 @@ class EnsembleSolver(AbstractSolver):
                 name = future_to_name[future]
                 try:
                     results[name] = future.result()
-                except Exception as exc:  # noqa: BLE001
+                except Exception as exc:  # pylint: disable=broad-exception-caught
                     self._logger.warning(
                         "Solver %s raised an exception: %s", name, exc
                     )
@@ -164,10 +164,9 @@ class EnsembleSolver(AbstractSolver):
                 pool.values(),
                 key=lambda r: (r.move_count, r.solve_time_seconds),
             )
-        else:
-            # FASTEST_SOLVE and CONFIDENCE_WEIGHTED (placeholder).
-            # Primary: fastest time; tiebreak: fewest moves.
-            return min(
-                pool.values(),
-                key=lambda r: (r.solve_time_seconds, r.move_count),
-            )
+        # FASTEST_SOLVE and CONFIDENCE_WEIGHTED (placeholder).
+        # Primary: fastest time; tiebreak: fewest moves.
+        return min(
+            pool.values(),
+            key=lambda r: (r.solve_time_seconds, r.move_count),
+        )

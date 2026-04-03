@@ -182,7 +182,7 @@ class CheckpointManager:
                     raw = json.load(fh)
                 metadata = CheckpointMetadata(**raw)
                 results.append((weights_path, metadata))
-            except Exception:  # noqa: BLE001
+            except Exception:  # noqa: BLE001  # pylint: disable=broad-exception-caught
                 continue
 
         results.sort(key=lambda t: (t[1].epoch, t[1].step), reverse=True)

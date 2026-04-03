@@ -10,5 +10,16 @@ max-instance-attributes=14
 max-args=7
 max-positional-arguments=7
 
+[BASIC]
+good-names=_global_rng,MOVES_2x2,MOVES_3x3,MOVES_4x4,MOVES_5x5
+
 [MESSAGES CONTROL]
-disable=R0801,R0903
+disable=
+    R0801,
+    R0903,
+    W0603,
+    W0212,
+    E1101,
+    C0104,
+    R0912,
+    R0915

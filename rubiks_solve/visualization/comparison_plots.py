@@ -1,8 +1,6 @@
 """Cross-solver comparison plots."""
 from __future__ import annotations
 
-from pathlib import Path
-
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -34,10 +32,10 @@ def _compute_metric(results: list, metric: str) -> float:
 
     if metric == "solve_rate":
         return sum(1 for r in results if r.solved) / len(results)
-    elif metric == "mean_moves":
+    if metric == "mean_moves":
         solved = [r.move_count for r in results if r.solved]
         return float(np.mean(solved)) if solved else float("nan")
-    elif metric == "mean_time":
+    if metric == "mean_time":
         return float(np.mean([r.solve_time_seconds for r in results]))
     else:
         raise ValueError(

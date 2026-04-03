@@ -5,6 +5,11 @@ import json
 from pathlib import Path
 from typing import Any, Literal
 
+try:
+    import yaml as _yaml  # type: ignore[import]
+except ImportError:
+    _yaml = None
+
 from pydantic import BaseModel, Field
 
 
@@ -132,14 +137,12 @@ class AppConfig(BaseModel):
         if suffix == ".json":
             raw: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
         elif suffix in {".yaml", ".yml"}:
-            try:
-                import yaml  # type: ignore[import]
-            except ImportError as exc:
+            if _yaml is None:
                 raise ImportError(
                     "PyYAML is required to load YAML config files. "
                     "Install it with: pip install pyyaml"
-                ) from exc
-            raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+                )
+            raw = _yaml.safe_load(path.read_text(encoding="utf-8")) or {}
         else:
             raise ValueError(
                 f"Unsupported config file extension {suffix!r}. "

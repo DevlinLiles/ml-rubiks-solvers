@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 import matplotlib.pyplot as plt
-import matplotlib.patches as patches
+import matplotlib.patches as patches  # pylint: disable=consider-using-from-import
 import numpy as np
 
 # Lazy import: mpl_toolkits is bundled with matplotlib but the 3-D axes are

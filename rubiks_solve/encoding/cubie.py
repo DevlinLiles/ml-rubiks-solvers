@@ -153,7 +153,7 @@ def _extract_3x3_cubies(
     edge_pos: list[int] = []
     edge_orient: list[int] = []
 
-    for slot, (sa, sb) in enumerate(_EDGE_STICKERS):
+    for _slot, (sa, sb) in enumerate(_EDGE_STICKERS):
         ea = int(state[sa[0], sa[1], sa[2]])
         eb = int(state[sb[0], sb[1], sb[2]])
 

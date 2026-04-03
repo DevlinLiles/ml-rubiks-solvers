@@ -25,7 +25,7 @@ def make_mlx_key(seed: int) -> "mx.array":
     Returns:
         An ``mx.array`` suitable for use with MLX random functions.
     """
-    import mlx.core as mx
+    import mlx.core as mx  # pylint: disable=import-outside-toplevel
 
     return mx.random.key(seed)
 
@@ -59,7 +59,7 @@ def set_global_seed(seed: int) -> None:
     _global_rng = make_rng(seed)
 
     try:
-        import mlx.core as mx
+        import mlx.core as mx  # pylint: disable=import-outside-toplevel
 
         mx.random.seed(seed)
     except ImportError:

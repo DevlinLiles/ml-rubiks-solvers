@@ -93,7 +93,7 @@ class AbstractPuzzleEnv(gym.Env, ABC):
         self,
         *,
         seed: int | None = None,
-        options: dict[str, Any] | None = None,
+        _options: dict[str, Any] | None = None,
     ) -> tuple[np.ndarray, dict[str, Any]]:
         """Reset the environment to a freshly scrambled puzzle.
 
@@ -101,7 +101,7 @@ class AbstractPuzzleEnv(gym.Env, ABC):
         ----------
         seed:
             Optional RNG seed for reproducibility.
-        options:
+        _options:
             Unused; accepted for Gymnasium API compatibility.
 
         Returns

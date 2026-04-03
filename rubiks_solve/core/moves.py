@@ -211,7 +211,8 @@ def _build_5x5_moves() -> list[Move]:
         three_wide.append(_build_move(face, 2, +1, True))
     # Remove duplicates caused by layer-2 appearing in both single and three_wide
     # single already contains layer 2; three_wide is redundant. Replace with outer-wide moves.
-    # Correct approach: 18 outer + 18 layer-1 wide + 18 layer-2 middle + 9 rotations + 9 three-wide(layer 3-equiv)
+    # Correct approach: 18 outer + 18 layer-1 wide + 18 layer-2 middle + 9 rotations
+    # + 9 three-wide(layer 3-equiv)
     # For a 5x5 the "3Uw" style means moving layers 0,1 together (already covered by Uw).
     # Use distinct layer indices to avoid confusion:
     #   layer -1 = whole-cube rotation

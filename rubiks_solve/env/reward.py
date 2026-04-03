@@ -33,7 +33,7 @@ def _misplaced_facelets(puzzle: AbstractPuzzle) -> int:
         Number of facelets that differ from the solved configuration.
     """
     state = puzzle.state
-    total = state.size
+    _total = state.size
     if state.ndim == 3:
         # NxN cube: (6, n, n), solved face f has all values == f
         n = state.shape[1]

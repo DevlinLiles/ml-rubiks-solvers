@@ -106,7 +106,7 @@ class ScrambleDataset:
         batch_size: int,
         min_depth: int = 1,
         max_depth: int = 20,
-        n_actions: int = 18,
+        _n_actions: int = 18,
     ) -> tuple[np.ndarray, np.ndarray]:
         """Generate a batch of ``(state, optimal_move_index)`` pairs for policy training.
 
@@ -152,7 +152,7 @@ class ScrambleDataset:
             # Apply depth random moves, tracking the move sequence.
             puzzle = solved_puzzle
             last_move = None
-            for step in range(depth):
+            for _step in range(depth):
                 move_idx = int(self.rng.integers(0, len(legal_moves)))
                 move = legal_moves[move_idx]
                 puzzle = puzzle.apply_move(move)

@@ -7,14 +7,19 @@ from __future__ import annotations
 
 import logging
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
 
 import mlx.core as mx
-import mlx.nn as nn
+import mlx.nn as nn  # pylint: disable=consider-using-from-import
 import mlx.optimizers as optim
+
+try:
+    from tqdm import tqdm as _tqdm
+except ImportError:
+    _tqdm = None
 
 from rubiks_solve.solvers.cnn.model import CubeValueNet
 
@@ -164,10 +169,9 @@ class CNNTrainer:
         self.config.checkpoint_dir.mkdir(parents=True, exist_ok=True)
         history: list[dict[str, float]] = []
 
-        try:
-            from tqdm import tqdm
-            epoch_bar = tqdm(range(1, self.config.epochs + 1), desc="CNN", unit="epoch", dynamic_ncols=True)
-        except ImportError:
+        if _tqdm is not None:
+            epoch_bar = _tqdm(range(1, self.config.epochs + 1), desc="CNN", unit="epoch", dynamic_ncols=True)
+        else:
             epoch_bar = range(1, self.config.epochs + 1)
 
         for epoch in epoch_bar:

@@ -1,4 +1,4 @@
-# STUB — not yet implemented
+"""Transformer-based puzzle solver model (stub — not yet implemented)."""
 # Architecture placeholder for a Transformer-based puzzle solver.
 # Future work: sequence model over move history to predict next move.
 

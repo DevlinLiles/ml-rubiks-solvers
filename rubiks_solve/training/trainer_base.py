@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
+from dataclasses import asdict
 from datetime import datetime, timezone
 from typing import Any
 
@@ -235,7 +236,7 @@ class AbstractTrainer(ABC):
         try:
             path = self.checkpoint_manager.save(model, optimizer_state, metadata)
             self._logger.debug("Checkpoint saved: %s", path)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:  # noqa: BLE001  # pylint: disable=broad-exception-caught
             self._logger.error("Checkpoint save failed: %s", exc)
 
     def _config_as_dict(self) -> dict[str, Any]:
@@ -254,7 +255,6 @@ class AbstractTrainer(ABC):
             return cfg
         # dataclass or object with __dict__
         try:
-            from dataclasses import asdict
             return asdict(cfg)
         except TypeError:
             return vars(cfg) if hasattr(cfg, "__dict__") else {}

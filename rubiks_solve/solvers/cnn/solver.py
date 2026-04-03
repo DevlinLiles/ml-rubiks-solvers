@@ -136,7 +136,7 @@ class CNNSolver(AbstractSolver):
 
             # Check for solved states — pick lowest-move-count solution.
             solved_solution: list[Move] | None = None
-            for idx, (cand_puzzle, cand_moves) in enumerate(candidates):
+            for _idx, (cand_puzzle, cand_moves) in enumerate(candidates):
                 if cand_puzzle.is_solved:
                     if solved_solution is None or len(cand_moves) < len(solved_solution):
                         solved_solution = cand_moves

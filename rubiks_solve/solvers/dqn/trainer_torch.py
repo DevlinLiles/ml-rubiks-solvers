@@ -119,7 +119,7 @@ class DQNTrainer:
         mean_q = float(q_selected.detach().mean().item())
         return {"loss": loss.item(), "mean_q": mean_q}
 
-    def train_epoch(self, epoch: int) -> dict[str, float]:
+    def train_epoch(self, _epoch: int) -> dict[str, float]:
         """Run steps_per_epoch environment steps and gradient updates."""
         legal_moves = self.env.legal_moves()
         n_actions = len(legal_moves)
@@ -207,6 +207,7 @@ class DQNTrainer:
         return history
 
     def save_checkpoint(self, path: Path, step: int) -> None:
+        """Serialise model weights and global step counter to a .npz file."""
         path.parent.mkdir(parents=True, exist_ok=True)
         arrays = {k: v.detach().cpu().numpy() for k, v in self.model.state_dict().items()}
         arrays["__step__"] = np.array(step)
@@ -214,6 +215,7 @@ class DQNTrainer:
         self._logger.debug("Checkpoint saved → %s (step %d)", path, step)
 
     def load_checkpoint(self, path: Path) -> int:
+        """Restore model weights from a .npz checkpoint; return the saved step."""
         data = np.load(str(path))
         step = int(data["__step__"])
         state_dict = {k: torch.tensor(data[k]) for k in data.files if k != "__step__"}

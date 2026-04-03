@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import mlx.core as mx
-import mlx.nn as nn
+import mlx.nn as nn  # pylint: disable=consider-using-from-import
 
 
 class CubePolicyNet(nn.Module):

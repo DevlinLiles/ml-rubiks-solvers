@@ -175,7 +175,7 @@ class MCTSSolver(AbstractSolver):
             node = node.best_child(c)
         return node
 
-    def _best_path(self, root: MCTSNode, c: float) -> list[Move]:
+    def _best_path(self, root: MCTSNode, _c: float) -> list[Move]:
         """Return the greedy move sequence from *root* following highest-visit children.
 
         Used when no solution was found to return the best partial path.

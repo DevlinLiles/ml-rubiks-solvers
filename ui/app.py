@@ -114,7 +114,9 @@ def _latest_ckpt(model_type: str, puzzle_name: str) -> Path | None:
 
     ``ida_star`` uses ADI-trained weights from ``models/cnn_adi/<puzzle>/``,
     falling back to the base CNN if no ADI checkpoint exists.
-    All other model types look under ``models/<model_type>/<puzzle>/``.
+    All other model types look under ``models/<model_type>/<puzzle>/``,
+    with a fallback to ``models/<model_type>/`` for backwards compatibility
+    with checkpoints saved before the puzzle-subdirectory layout was adopted.
     Returns ``None`` when no checkpoint is found.
     """
     if model_type == "ida_star":
@@ -127,13 +129,19 @@ def _latest_ckpt(model_type: str, puzzle_name: str) -> Path | None:
                     return ckpts[-1]
         return None
 
-    model_dir = _MODELS_DIR / model_type
-    if puzzle_name != "3x3":
-        model_dir = model_dir / puzzle_name
-    if not model_dir.exists():
-        return None
-    ckpts = sorted(model_dir.glob("ckpt_*.npz"))
-    return ckpts[-1] if ckpts else None
+    # Primary: puzzle-specific subdirectory (layout used by all current training scripts)
+    candidates = [_MODELS_DIR / model_type / puzzle_name]
+    # Fallback: flat layout for 3x3 only — older checkpoints were saved directly under
+    # models/<solver>/ before the puzzle-subdirectory layout was adopted.
+    if puzzle_name == "3x3":
+        candidates.append(_MODELS_DIR / model_type)
+
+    for model_dir in candidates:
+        if model_dir.exists():
+            ckpts = sorted(model_dir.glob("ckpt_*.npz"))
+            if ckpts:
+                return ckpts[-1]
+    return None
 
 
 def _get_ml_solver(

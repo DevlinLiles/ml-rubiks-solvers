@@ -40,6 +40,9 @@ models/metrics/
 # Logs
 logs/
 
+# Detached run manifests
+runs/
+
 # macOS
 .DS_Store
 

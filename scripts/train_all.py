@@ -109,6 +109,36 @@ def parse_args() -> argparse.Namespace:
         "--log-level", default="INFO",
         choices=["DEBUG", "INFO", "WARNING", "ERROR"],
     )
+    parser.add_argument(
+        "--detach",
+        action="store_true",
+        help=(
+            "DGX only: launch each job in the background and return immediately. "
+            "Use --gather later to collect results."
+        ),
+    )
+    parser.add_argument(
+        "--gather",
+        nargs="?",
+        const="",
+        metavar="RUN_ID",
+        help=(
+            "Reconnect to DGX and pull results for detached runs. "
+            "Pass a specific RUN_ID or omit to check all running runs."
+        ),
+    )
+    parser.add_argument(
+        "--tail",
+        type=int,
+        default=0,
+        metavar="N",
+        help="With --gather: print the last N lines of the remote log per run.",
+    )
+    parser.add_argument(
+        "--full-checkpoints",
+        action="store_true",
+        help="With --gather: pull every checkpoint instead of only the latest per run.",
+    )
     return parser.parse_args()
 
 
@@ -230,17 +260,23 @@ def run_dgx(
     puzzles: list[str],
     args: argparse.Namespace,
 ) -> list[JobResult]:
-    """Run all compatible combinations on the DGX Spark in one SSH session."""
+    """Run all compatible combinations on the DGX Spark in one SSH session.
+
+    When ``args.detach`` is ``True``, each job is launched with nohup and this
+    function returns immediately.  Use ``gather_dgx()`` later to collect results.
+    """
+    import copy
+
     sys.path.insert(0, str(Path(__file__).parent))
     from remote_train import (  # type: ignore[import]
         _load_env,
-        _require_env,
         _rsync_project,
         _ensure_venv,
         _build_train_cmd,
         _pull_results,
         _get_connection,
         _expand,
+        delegate_detached,
     )
 
     _load_env()
@@ -285,9 +321,42 @@ def run_dgx(
     with setup_conn:
         _ensure_venv(setup_conn, venv_path, torch_index_url)
 
-    # --- Step 3: run each job with a fresh SSH connection ---
+    detach = getattr(args, "detach", False)
+
+    if detach:
+        # --- Detached mode: launch all jobs with nohup, return immediately ---
+        for count, (solver, puzzle) in enumerate(dgx_jobs, 1):
+            logger.info("[%d/%d] Launching detached: %s on %s", count, total, solver, puzzle)
+            job_args = copy.copy(args)
+            job_args.solver = solver
+            job_args.puzzle = puzzle
+            t0 = time.perf_counter()
+            try:
+                manifest = delegate_detached(job_args)
+                duration = time.perf_counter() - t0
+                result = JobResult(
+                    solver=solver, puzzle=puzzle, backend="dgx",
+                    success=True, duration_seconds=duration,
+                    skip_reason=f"detached run_id={manifest['run_id']}",
+                )
+            except Exception as exc:  # noqa: BLE001
+                duration = time.perf_counter() - t0
+                logger.error("Failed to launch detached job %s/%s — %s", solver, puzzle, exc)
+                result = JobResult(
+                    solver=solver, puzzle=puzzle, backend="dgx",
+                    success=False, duration_seconds=duration, error=str(exc),
+                )
+            results.append(result)
+            _log_job_result(result)
+
+        logger.info(
+            "All jobs launched. Run: python scripts/train_all.py --gather  "
+            "(or: python scripts/remote_train.py --gather) to collect results."
+        )
+        return results
+
+    # --- Connected mode: run each job with a fresh SSH connection ---
     # A fresh connection per job ensures one dropped session doesn't cascade.
-    import copy
     for count, (solver, puzzle) in enumerate(dgx_jobs, 1):
         logger.info("[%d/%d] DGX training: %s on %s", count, total, solver, puzzle)
 
@@ -317,11 +386,25 @@ def run_dgx(
         results.append(result)
         _log_job_result(result)
 
-    # --- Step 4: pull all results back once ---
+    # --- Pull all results back once ---
     logger.info("Pulling all checkpoints and metrics from DGX...")
     _pull_results(None, remote_dir, args.output_dir)
 
     return results
+
+
+def gather_dgx(args: argparse.Namespace) -> None:
+    """Reconnect to DGX and pull results for any completed detached runs."""
+    sys.path.insert(0, str(Path(__file__).parent))
+    from remote_train import gather  # type: ignore[import]
+
+    run_id = args.gather if args.gather else None
+    gather(
+        run_id=run_id,
+        output_dir=args.output_dir,
+        tail=args.tail,
+        full=getattr(args, "full_checkpoints", False),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -379,6 +462,15 @@ def main() -> None:
     from rubiks_solve.utils.logging_config import configure_logging
 
     configure_logging(level=args.log_level)
+
+    # --gather mode: reconnect to DGX and collect any finished detached runs.
+    if args.gather is not None:
+        if args.backend != "dgx":
+            print("error: --gather requires --backend dgx", file=sys.stderr)
+            sys.exit(1)
+        args.output_dir.mkdir(parents=True, exist_ok=True)
+        gather_dgx(args)
+        return
 
     try:
         solvers = _parse_list(args.solvers, ALL_SOLVERS)

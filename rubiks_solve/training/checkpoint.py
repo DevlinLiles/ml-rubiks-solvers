@@ -7,7 +7,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-import mlx.core as mx
+try:
+    import mlx.core as mx
+    _MLX_AVAILABLE = True
+except ImportError:
+    mx = None  # type: ignore[assignment]
+    _MLX_AVAILABLE = False
 
 
 @dataclass
@@ -88,6 +93,8 @@ class CheckpointManager:
         Returns:
             The :class:`~pathlib.Path` to the saved ``.npz`` weights file.
         """
+        if not _MLX_AVAILABLE:
+            raise RuntimeError("mlx is required for CheckpointManager.save() but is not installed.")
         self._dir.mkdir(parents=True, exist_ok=True)
 
         stem = f"ckpt_epoch{metadata.epoch:04d}_step{metadata.step:08d}"
@@ -140,6 +147,8 @@ class CheckpointManager:
             FileNotFoundError: If *checkpoint_path* or its companion metadata
                                file does not exist.
         """
+        if not _MLX_AVAILABLE:
+            raise RuntimeError("mlx is required for CheckpointManager.load() but is not installed.")
         checkpoint_path = Path(checkpoint_path)
         if not checkpoint_path.exists():
             raise FileNotFoundError(f"Checkpoint not found: {checkpoint_path}")

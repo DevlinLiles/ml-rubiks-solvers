@@ -8,7 +8,11 @@ from datetime import datetime, timezone
 from typing import Any
 
 from rubiks_solve.core.base import AbstractPuzzle
-from rubiks_solve.training.checkpoint import CheckpointManager, CheckpointMetadata
+try:
+    from rubiks_solve.training.checkpoint import CheckpointManager, CheckpointMetadata
+except ImportError:
+    CheckpointManager = None  # type: ignore[assignment,misc]
+    CheckpointMetadata = None  # type: ignore[assignment,misc]
 from rubiks_solve.training.curriculum import ScrambleCurriculum
 from rubiks_solve.training.data_gen import ScrambleDataset
 from rubiks_solve.training.metrics import EpochMetrics, MetricsTracker
@@ -22,7 +26,7 @@ class AbstractTrainer(ABC):
 
     * **Curriculum** — calls :meth:`~ScrambleCurriculum.maybe_increase_depth`
       after each epoch so scramble difficulty grows as the solver improves.
-    * **Checkpointing** — saves a checkpoint after every epoch and restores the
+    * **Checkpointing** — saves a checkpoint every 100 epochs and restores the
       latest one if one already exists (warm restart).
     * **Metrics tracking** — records an :class:`~metrics.EpochMetrics` object
       per epoch and logs it via the trainer's logger.
@@ -160,8 +164,9 @@ class AbstractTrainer(ABC):
                     "Curriculum advanced to depth=%d", self.curriculum.current_depth
                 )
 
-            # --- Checkpoint ---
-            self._save_checkpoint(epoch)
+            # --- Checkpoint (every 100 epochs) ---
+            if (epoch + 1) % 100 == 0:
+                self._save_checkpoint(epoch)
 
         self._logger.info("Training complete after %d epochs.", n_epochs)
         return self.metrics_tracker

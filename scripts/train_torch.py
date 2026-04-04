@@ -338,16 +338,13 @@ def main() -> None:
     metrics_df.to_csv(csv_path, index=False)
     logger.info("Metrics saved", path=str(csv_path))  # type: ignore[union-attr]
 
-    try:
-        from rubiks_solve.visualization.training_plots import plot_loss_curve
+    from rubiks_solve.visualization.training_plots import plot_loss_curve
 
-        plot_path = metrics_dir / f"{args.solver}_{args.puzzle}_plot.png"
-        solver_label = f"{args.solver.upper()} ({args.puzzle}) [DGX]"
-        if "loss" in metrics_df.columns:
-            plot_loss_curve(metrics_df, solver_name=solver_label, output_path=plot_path)
-        logger.info("Training plot saved", path=str(plot_path))  # type: ignore[union-attr]
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("Could not save training plot", error=str(exc))  # type: ignore[union-attr]
+    plot_path = metrics_dir / f"{args.solver}_{args.puzzle}_plot.png"
+    solver_label = f"{args.solver.upper()} ({args.puzzle}) [DGX]"
+    if "loss" in metrics_df.columns:
+        plot_loss_curve(metrics_df, solver_name=solver_label, output_path=plot_path)
+    logger.info("Training plot saved", path=str(plot_path))  # type: ignore[union-attr]
 
     logger.info("DGX training complete")  # type: ignore[union-attr]
 

@@ -232,6 +232,10 @@ def _run_solve_job(
             replay = replay.apply_move(m)
             scramble_states.append(_serialize_state(replay))
 
+        # Progress callback — writes live stats into the job dict
+        def _progress(data: dict, _job_id: str = job_id) -> None:
+            _jobs[_job_id]["progress"] = data
+
         # Build and run solver
         if solver_name == "genetic":
             # Use the policy network for a fast single-forward-pass-per-step
@@ -243,6 +247,7 @@ def _run_solve_job(
                     population_size=population_size,
                     max_chromosome_length=puzzle_cls.move_limit(),
                     seed=seed,
+                    progress_callback=_progress,
                 )
                 solver = GeneticSolver(puzzle_cls, cfg)
         elif solver_name == "mcts":
@@ -250,6 +255,8 @@ def _run_solve_job(
                 n_simulations=500_000,
                 time_limit_seconds=float(max_generations),  # repurpose field as seconds
                 seed=seed,
+                progress_callback=_progress,
+                progress_interval=500,
             )
             solver = MCTSSolver(puzzle_cls, cfg)
         elif solver_name == "cnn":

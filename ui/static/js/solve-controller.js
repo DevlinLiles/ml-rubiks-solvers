@@ -202,12 +202,16 @@ class SolveController {
       if (!resp.ok) throw new Error(await resp.text());
       const { job_id } = await resp.json();
 
-      const result = await pollJob(job_id, 'solve');
+      this._showProgress(solver, maxGen);
+      const result = await pollJob(job_id, 'solve', 500, (data) => this._updateProgress(data));
+      this._hideProgress();
+
       if (result.status === 'error') throw new Error(result.error || 'Unknown error');
 
       this._loadResult(result);
       showNotify(result.solved ? 'Solved!' : 'Best attempt shown', result.solved ? 'success' : 'error');
     } catch (err) {
+      this._hideProgress();
       showNotify('Error: ' + err.message, 'error');
       console.error(err);
     } finally {
@@ -429,6 +433,66 @@ class SolveController {
       if (this.playing) await delay(80);
     }
     if (this.playing) this._stopPlay();
+  }
+
+  // -------------------------------------------------------------------------
+  // Live progress display
+  // -------------------------------------------------------------------------
+
+  _showProgress(solver, maxGen) {
+    const card = document.getElementById('solve-progress-card');
+    if (!card) return;
+    card.style.display = '';
+    // Show solver-specific label
+    const label = document.getElementById('solve-progress-solver-label');
+    if (label) {
+      label.textContent = solver === 'mcts'
+        ? `MCTS — time limit: ${maxGen}s`
+        : solver === 'genetic'
+        ? `Genetic — max generations: ${maxGen}`
+        : solver.toUpperCase();
+    }
+    this._progressStartedAt = Date.now();
+    this._updateProgress({});
+  }
+
+  _hideProgress() {
+    const card = document.getElementById('solve-progress-card');
+    if (card) card.style.display = 'none';
+  }
+
+  _updateProgress(jobData) {
+    const p = jobData.progress || {};
+    const elapsed = p.elapsed != null
+      ? p.elapsed
+      : (Date.now() - (this._progressStartedAt || Date.now())) / 1000;
+
+    document.getElementById('solve-progress-elapsed').textContent =
+      elapsed.toFixed(1) + 's';
+
+    const bar    = document.getElementById('solve-progress-bar');
+    const detail = document.getElementById('solve-progress-detail');
+
+    if (p.type === 'genetic') {
+      const pct = p.max_generations > 0
+        ? Math.min(100, (p.generation / p.max_generations) * 100)
+        : 0;
+      if (bar) bar.style.width = pct.toFixed(1) + '%';
+      if (detail) detail.textContent =
+        `Gen ${p.generation}/${p.max_generations} · best ${p.best_fitness != null ? p.best_fitness.toFixed(2) : '—'} · mean ${p.mean_fitness != null ? p.mean_fitness.toFixed(2) : '—'}`;
+    } else if (p.type === 'mcts') {
+      // Progress by elapsed time (most reliable for MCTS with a time limit)
+      const pct = p.time_limit > 0
+        ? Math.min(100, (elapsed / p.time_limit) * 100)
+        : 0;
+      if (bar) bar.style.width = pct.toFixed(1) + '%';
+      if (detail) detail.textContent =
+        `${(p.simulations_run || 0).toLocaleString()} simulations`;
+    } else {
+      // Other solvers: just pulse the bar
+      if (bar) bar.style.width = '100%';
+      if (detail) detail.textContent = 'Running…';
+    }
   }
 
   // -------------------------------------------------------------------------

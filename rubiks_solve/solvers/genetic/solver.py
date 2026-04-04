@@ -3,8 +3,8 @@ from __future__ import annotations
 
 import random
 import time
-from dataclasses import dataclass
-from typing import Any
+from dataclasses import dataclass, field
+from typing import Any, Callable, Optional
 
 import numpy as np
 from deap import base, creator, tools
@@ -72,6 +72,9 @@ class GeneticConfig:
     stagnation_limit: int = 50
     stagnation_inject_count: int = 10
     seed: int = 42
+    progress_callback: Optional[Callable[[dict], None]] = field(
+        default=None, repr=False, compare=False
+    )
 
 
 class GeneticSolver(AbstractSolver):
@@ -228,6 +231,17 @@ class GeneticSolver(AbstractSolver):
                     gen_idx,
                     cfg.stagnation_inject_count,
                 )
+
+            # --- Progress callback ---
+            if cfg.progress_callback is not None:
+                cfg.progress_callback({
+                    "type": "genetic",
+                    "generation": gen_idx + 1,
+                    "max_generations": cfg.max_generations,
+                    "best_fitness": gen_fitness,
+                    "mean_fitness": gen_mean,
+                    "elapsed": time.perf_counter() - start_time,
+                })
 
             # Early exit on solution
             result_puzzle = puzzle.apply_moves(

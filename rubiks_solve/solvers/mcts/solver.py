@@ -2,7 +2,8 @@
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Callable, Optional
 
 import numpy as np
 
@@ -34,6 +35,10 @@ class MCTSConfig:
     c_puct: float = 1.414
     time_limit_seconds: float = 10.0
     seed: int = 42
+    progress_callback: Optional[Callable[[dict], None]] = field(
+        default=None, repr=False, compare=False
+    )
+    progress_interval: int = 500
 
 
 class MCTSSolver(AbstractSolver):
@@ -126,6 +131,19 @@ class MCTSSolver(AbstractSolver):
             # --- Backpropagation ---
             node.backpropagate(reward)
             simulations_run += 1
+
+            # --- Progress callback ---
+            if (
+                cfg.progress_callback is not None
+                and simulations_run % cfg.progress_interval == 0
+            ):
+                cfg.progress_callback({
+                    "type": "mcts",
+                    "simulations_run": simulations_run,
+                    "max_simulations": cfg.n_simulations,
+                    "elapsed": time.perf_counter() - start_time,
+                    "time_limit": cfg.time_limit_seconds,
+                })
 
             # Check if any child of the newly expanded node is solved
             if reward == 1.0:

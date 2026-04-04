@@ -22,11 +22,12 @@ function delay(ms) {
   return new Promise(r => setTimeout(r, ms));
 }
 
-async function pollJob(jobId, endpoint, intervalMs = 800) {
+async function pollJob(jobId, endpoint, intervalMs = 800, onProgress = null) {
   while (true) {
     const resp = await fetch(`/api/${endpoint}/${jobId}`);
     if (!resp.ok) throw new Error(`Poll failed: ${resp.status}`);
     const data = await resp.json();
+    if (data.status === 'running' && onProgress) onProgress(data);
     if (data.status !== 'running') return data;
     await delay(intervalMs);
   }

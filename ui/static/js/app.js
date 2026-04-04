@@ -250,6 +250,7 @@ class SolveController {
     this.isMegaminx = false;
     this.isSkewb = false;
     this.moveLimits = {};
+    this.availableSolvers = {};
 
     // Playback state
     this.allMoves  = [];  // combined scramble + solve moves
@@ -266,12 +267,15 @@ class SolveController {
 
   async _initDropdowns() {
     // Populate puzzle dropdown
-    const [puzzles, solvers, moveLimits] = await Promise.all([
+    const [puzzles, solvers, moveLimits, availableSolvers] = await Promise.all([
       fetch('/api/puzzles').then((r) => r.json()),
       fetch('/api/solvers').then((r) => r.json()),
       fetch('/api/move_limits').then((r) => r.ok ? r.json() : {}).catch(() => ({})),
+      fetch('/api/available_solvers').then((r) => r.ok ? r.json() : {}).catch(() => ({})),
     ]);
     this.moveLimits = moveLimits;
+    this.availableSolvers = availableSolvers;
+    this._allSolvers = solvers;
 
     const pd = document.getElementById('solve-puzzle');
     puzzles.forEach((p) => {
@@ -292,8 +296,30 @@ class SolveController {
 
     // Initialize cube
     this._reinitCube();
-    pd.addEventListener('change', () => this._reinitCube());
+    pd.addEventListener('change', () => { this._reinitCube(); this._updateSolverDropdown(); });
     sd.addEventListener('change', () => this._updateSolverParams());
+    this._updateSolverDropdown();
+    this._updateSolverParams();
+  }
+
+  _updateSolverDropdown() {
+    const puzzle = document.getElementById('solve-puzzle').value;
+    const available = this.availableSolvers[puzzle] || this._allSolvers || [];
+    const sd = document.getElementById('solve-solver');
+    const current = sd.value;
+
+    Array.from(sd.options).forEach((opt) => {
+      const isAvailable = available.includes(opt.value);
+      opt.disabled = !isAvailable;
+      opt.title = isAvailable ? '' : 'No trained model found for this puzzle';
+    });
+
+    // If currently selected solver is unavailable, switch to first available
+    if (!available.includes(sd.value)) {
+      const first = Array.from(sd.options).find((o) => !o.disabled);
+      if (first) sd.value = first.value;
+    }
+
     this._updateSolverParams();
   }
 

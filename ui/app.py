@@ -375,6 +375,26 @@ async def get_solvers() -> list[str]:
     return _SOLVER_NAMES
 
 
+@app.get("/api/available_solvers")
+async def get_available_solvers() -> dict[str, list[str]]:
+    """Return which solvers are available (have checkpoints) for each puzzle.
+
+    Non-ML solvers (genetic, mcts) are always included.
+    ML solvers (cnn, policy, dqn, ida_star) are included only when a
+    checkpoint file exists under models/.
+    """
+    ml_solvers = ["cnn", "policy", "dqn", "ida_star"]
+    always_available = ["genetic", "mcts"]
+    result: dict[str, list[str]] = {}
+    for puzzle_name in _PUZZLE_REGISTRY:
+        available = list(always_available)
+        for solver in ml_solvers:
+            if _latest_ckpt(solver, puzzle_name) is not None:
+                available.append(solver)
+        result[puzzle_name] = available
+    return result
+
+
 class SolveRequest(BaseModel):
     """Request body for the /api/solve endpoint."""
 

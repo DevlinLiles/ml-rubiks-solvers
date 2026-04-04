@@ -195,7 +195,7 @@ class TestE2EMegaminxInverse:
         """Applying a 3-move scramble then its inverse sequence restores solved."""
         rng = np.random.default_rng(99)
         solved = Megaminx.solved_state()
-        scrambled = solved.scramble(3, rng)
+        _ = solved.scramble(3, rng)
 
         # Build the scramble move sequence by inspecting legal_moves and
         # re-scrambling from a known seed so the moves are accessible.
@@ -242,20 +242,24 @@ class TestE2EMegaminxMLModels:
 
     @pytest.mark.skip(reason="Requires trained model weights.")
     def test_policy_solve(self):
-        from rubiks_solve.solvers.policy.solver import PolicySolver
+        from rubiks_solve.solvers.policy.solver import PolicyNetworkSolver as PolicySolver
         rng = np.random.default_rng(21)
         solved = Megaminx.solved_state()
         scrambled = solved.scramble(3, rng)
-        solver = PolicySolver(Megaminx)
+        from rubiks_solve.encoding import get_encoder
+        _encoder = get_encoder("one_hot", Megaminx)
+        solver = PolicySolver(Megaminx, _encoder)
         result = solver.solve(scrambled)
         _verify_solution(scrambled, result)
 
     @pytest.mark.skip(reason="Requires trained model weights.")
     def test_dqn_solve(self):
-        from rubiks_solve.solvers.dqn.model import DQNSolver
+        from rubiks_solve.solvers.dqn.solver import DQNSolver
         rng = np.random.default_rng(22)
         solved = Megaminx.solved_state()
         scrambled = solved.scramble(3, rng)
-        solver = DQNSolver(Megaminx)
+        from rubiks_solve.encoding import get_encoder
+        _encoder = get_encoder("one_hot", Megaminx)
+        solver = DQNSolver(Megaminx, _encoder)
         result = solver.solve(scrambled)
         _verify_solution(scrambled, result)

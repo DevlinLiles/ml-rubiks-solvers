@@ -1,7 +1,7 @@
 """Tests for the SolverChain pipeline."""
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+
 from typing import Any
 
 import numpy as np
@@ -123,7 +123,7 @@ def test_chain_with_single_solver_solved():
     # The solver returns solved=True with one move.
     # The chain checks by re-applying moves; _FakePuzzle.apply_move always returns
     # a non-solved puzzle — so we need a puzzle that is already solved to start.
-    solved_puzzle = _FakePuzzle(solved=True)
+    _solved_puzzle = _FakePuzzle(solved=True)
     # The result moves being applied to a solved puzzle should leave it solved.
     # Override apply_move to preserve solved status:
     stage = StageConfig(solver=solver, move_budget=10)

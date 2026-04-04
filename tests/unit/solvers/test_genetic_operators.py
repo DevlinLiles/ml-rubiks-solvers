@@ -4,7 +4,6 @@ from __future__ import annotations
 import random
 
 import numpy as np
-import pytest
 
 from rubiks_solve.solvers.genetic.operators import cx_single_point, mut_random_move
 from rubiks_solve.solvers.genetic.fitness import misplaced_facelets_fitness
@@ -79,9 +78,9 @@ def test_mut_random_move_changes_individual():
     original = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
     individual = list(original)
     n_moves = 18
-    (mutated,) = mut_random_move(individual, n_moves, indpb=1.0)
+    mutated, = mut_random_move(individual, n_moves, indpb=1.0)
     # With indpb=1.0 at least some genes should differ (insertions/deletions change length too)
-    changed = (list(mutated) != original)
+    changed = list(mutated) != original
     assert changed
 
 

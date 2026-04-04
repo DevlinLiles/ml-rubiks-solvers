@@ -476,6 +476,7 @@ app.mount("/", StaticFiles(directory=str(_STATIC_DIR), html=True), name="static"
 
 
 def main() -> None:
+    """Start the FastAPI development server on localhost:8000."""
     uvicorn.run("ui.app:app", host="127.0.0.1", port=8000, reload=False)
 
 

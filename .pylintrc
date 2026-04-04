@@ -1,5 +1,13 @@
 [MASTER]
-ignored-modules=mlx,mlx.core,mlx.nn,mlx.optimizers
+ignored-modules=
+    mlx,
+    mlx.core,
+    mlx.nn,
+    mlx.optimizers,
+    gymnasium,
+    deap,
+    remote_train,
+    train
 
 [FORMAT]
 max-line-length=110
@@ -25,4 +33,7 @@ disable=
     R0912,
     R0915,
     R0917,
-    W0621
+    W0621,
+    C0116,
+    C1803,
+    W0613

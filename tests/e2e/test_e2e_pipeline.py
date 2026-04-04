@@ -52,7 +52,6 @@ class _AlwaysFailSolver(AbstractSolver):
         super().__init__(puzzle_type, config=None)
 
     def solve(self, puzzle: AbstractPuzzle) -> SolveResult:
-        import time
         return SolveResult(
             solved=False,
             moves=[],
@@ -398,7 +397,7 @@ class TestEnsembleSolver:
             "to solved state"
         )
 
-    @pytest.mark.xfail(strict=False, reason="Stochastic genetic solver — 3-move solve not guaranteed in budget")
+    @pytest.mark.xfail(strict=False, reason="Stochastic genetic solver — 3-move solve not guaranteed")
     def test_ensemble_with_one_failing_solver(self):
         """Ensemble still returns solved=True if at least one solver succeeds.
 

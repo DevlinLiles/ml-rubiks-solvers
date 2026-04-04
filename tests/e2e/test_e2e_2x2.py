@@ -191,20 +191,24 @@ class TestE2E2x2MLModels:
 
     @pytest.mark.skip(reason="Requires trained model weights.")
     def test_policy_solve(self):
-        from rubiks_solve.solvers.policy.solver import PolicySolver
+        from rubiks_solve.solvers.policy.solver import PolicyNetworkSolver as PolicySolver
         rng = np.random.default_rng(21)
         solved = Cube2x2.solved_state()
         scrambled = solved.scramble(3, rng)
-        solver = PolicySolver(Cube2x2)
+        from rubiks_solve.encoding import get_encoder
+        _encoder = get_encoder("one_hot", Cube2x2)
+        solver = PolicySolver(Cube2x2, _encoder)
         result = solver.solve(scrambled)
         _verify_solution(scrambled, result)
 
     @pytest.mark.skip(reason="Requires trained model weights.")
     def test_dqn_solve(self):
-        from rubiks_solve.solvers.dqn.model import DQNSolver
+        from rubiks_solve.solvers.dqn.solver import DQNSolver
         rng = np.random.default_rng(22)
         solved = Cube2x2.solved_state()
         scrambled = solved.scramble(3, rng)
-        solver = DQNSolver(Cube2x2)
+        from rubiks_solve.encoding import get_encoder
+        _encoder = get_encoder("one_hot", Cube2x2)
+        solver = DQNSolver(Cube2x2, _encoder)
         result = solver.solve(scrambled)
         _verify_solution(scrambled, result)

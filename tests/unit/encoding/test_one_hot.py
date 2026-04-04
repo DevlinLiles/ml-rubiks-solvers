@@ -179,5 +179,7 @@ def test_output_size_by_cube_size(n, expected_size):
         from rubiks_solve.core.cube_4x4 import Cube4x4 as cls
     elif n == 5:
         from rubiks_solve.core.cube_5x5 import Cube5x5 as cls
+    else:
+        raise ValueError(f"Unsupported cube size n={n}")
     encoder = OneHotEncoder(cls)
     assert encoder.output_size == expected_size

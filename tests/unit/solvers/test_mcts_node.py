@@ -216,7 +216,7 @@ def test_solution_path_root():
     """Root node solution_path() returns an empty list."""
     puzzle = _FakePuzzle()
     root = MCTSNode(puzzle)
-    assert root.solution_path() == []
+    assert not root.solution_path()
 
 
 def test_solution_path_correct():

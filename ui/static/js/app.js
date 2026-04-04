@@ -126,6 +126,120 @@ function renderMegaminx(container, colors) {
 }
 
 // ---------------------------------------------------------------------------
+// Skewb Ultimate flat renderer (cube-cross net with face pieces + corners)
+// ---------------------------------------------------------------------------
+
+// One color per corner piece (8 corners, each has a unique "home" color)
+const SKEWB_CORNER_COLORS = [
+  '#FFFFFF', // 0  LBD
+  '#FFD500', // 1  RBD
+  '#009B48', // 2  LFD
+  '#0046AD', // 3  RFD
+  '#FF5800', // 4  LBU
+  '#C41E3A', // 5  RBU
+  '#9B59B6', // 6  LFU
+  '#00CED1', // 7  RFU
+];
+
+// One color per face piece (6 faces of the inscribed cube)
+const SKEWB_FACE_COLORS = [
+  '#FF5800', // 0 L
+  '#C41E3A', // 1 R
+  '#0046AD', // 2 B
+  '#009B48', // 3 F
+  '#FFD500', // 4 D
+  '#FFFFFF', // 5 U
+];
+
+const SKEWB_FACE_LABELS = ['L', 'R', 'B', 'F', 'D', 'U'];
+
+// face idx → [TL slot, TR slot, BL slot, BR slot] corner slot indices
+const SKEWB_FACE_CORNERS = [
+  [4, 6, 0, 2], // 0 L: LBU, LFU, LBD, LFD
+  [7, 5, 3, 1], // 1 R: RFU, RBU, RFD, RBD
+  [5, 4, 1, 0], // 2 B: RBU, LBU, RBD, LBD
+  [6, 7, 2, 3], // 3 F: LFU, RFU, LFD, RFD
+  [2, 3, 0, 1], // 4 D: LFD, RFD, LBD, RBD
+  [4, 5, 6, 7], // 5 U: LBU, RBU, LFU, RFU
+];
+
+// Net layout (cross):  row/col positions per face
+//       [U]
+// [L] [F] [R] [B]
+//       [D]
+const SKEWB_NET = [
+  { face: 5, row: 0, col: 1 }, // U
+  { face: 0, row: 1, col: 0 }, // L
+  { face: 3, row: 1, col: 1 }, // F
+  { face: 1, row: 1, col: 2 }, // R
+  { face: 2, row: 1, col: 3 }, // B
+  { face: 4, row: 2, col: 1 }, // D
+];
+
+// Puzzle display-name overrides (for dropdown labels)
+const PUZZLE_DISPLAY_NAMES = {
+  megaminx: 'Megaminx',
+  skewb_ultimate: 'Skewb Ultimate',
+};
+
+function renderSkewbUltimate(container, colors) {
+  // colors = [[piece_id, orientation], ...] for 14 rows
+  // rows 0-7: corner slots, rows 8-13: face-piece slots
+  container.innerHTML = '';
+  const net = document.createElement('div');
+  net.className = 'skewb-net';
+
+  for (const { face, row, col } of SKEWB_NET) {
+    const [fpId, fpOri] = colors[8 + face] || [face, 0];
+    const cornerSlots = SKEWB_FACE_CORNERS[face];
+
+    const cell = document.createElement('div');
+    cell.className = 'skewb-cell';
+    cell.style.gridRow = row + 1;
+    cell.style.gridColumn = col + 1;
+
+    const label = document.createElement('div');
+    label.className = 'skewb-face-label';
+    label.textContent = SKEWB_FACE_LABELS[face];
+
+    const faceGrid = document.createElement('div');
+    faceGrid.className = 'skewb-face-grid';
+
+    for (let r = 0; r < 3; r++) {
+      for (let c = 0; c < 3; c++) {
+        const sq = document.createElement('div');
+        const isEdgeOnly = (r === 1) !== (c === 1);
+
+        if (isEdgeOnly) {
+          sq.className = 'skewb-gap';
+        } else if (r === 1 && c === 1) {
+          // Face piece center
+          sq.className = 'skewb-piece face-piece' + (fpOri !== 0 ? ' flipped' : '');
+          sq.style.background = SKEWB_FACE_COLORS[fpId] || '#333';
+          sq.title = `Face piece ${fpId} ori=${fpOri}`;
+        } else {
+          // Corner: TL=0, TR=1, BL=2, BR=3
+          const ci = (r === 0 ? 0 : 2) + (c === 0 ? 0 : 1);
+          const slot = cornerSlots[ci];
+          const [pid, ori] = colors[slot] || [slot, 0];
+          sq.className = 'skewb-piece corner-piece';
+          sq.style.background = SKEWB_CORNER_COLORS[pid] || '#333';
+          if (ori > 0) sq.dataset.ori = ori;
+          sq.title = `Slot ${slot} → piece ${pid} ori=${ori}`;
+        }
+        faceGrid.appendChild(sq);
+      }
+    }
+
+    cell.appendChild(label);
+    cell.appendChild(faceGrid);
+    net.appendChild(cell);
+  }
+
+  container.appendChild(net);
+}
+
+// ---------------------------------------------------------------------------
 // SolveController
 // ---------------------------------------------------------------------------
 
@@ -134,6 +248,7 @@ class SolveController {
     this.cube3d = null;
     this.currentN = 3;
     this.isMegaminx = false;
+    this.isSkewb = false;
     this.moveLimits = {};
 
     // Playback state
@@ -162,7 +277,7 @@ class SolveController {
     puzzles.forEach((p) => {
       const opt = document.createElement('option');
       opt.value = p;
-      opt.textContent = p === 'megaminx' ? 'Megaminx' : p.toUpperCase();
+      opt.textContent = PUZZLE_DISPLAY_NAMES[p] ?? p.toUpperCase();
       pd.appendChild(opt);
     });
     pd.value = '3x3';
@@ -195,12 +310,19 @@ class SolveController {
   _reinitCube() {
     const puzzle = document.getElementById('solve-puzzle').value;
     this.isMegaminx = puzzle === 'megaminx';
+    this.isSkewb = puzzle === 'skewb_ultimate';
     const container = document.getElementById('cube-canvas-container');
     container.innerHTML = '';
 
     if (this.isMegaminx) {
-      // Show placeholder megaminx net
       renderMegaminx(container, Array.from({ length: 12 }, (_, f) => Array(11).fill(f)));
+      this.cube3d = null;
+    } else if (this.isSkewb) {
+      // Placeholder: solved state — piece i in slot i, orientation 0
+      const solvedColors = Array.from({ length: 14 }, (_, i) =>
+        i < 8 ? [i, 0] : [i - 8, 0]
+      );
+      renderSkewbUltimate(container, solvedColors);
       this.cube3d = null;
     } else {
       const n = parseInt(puzzle[0], 10) || 3;
@@ -338,6 +460,9 @@ class SolveController {
     if (this.isMegaminx) {
       const container = document.getElementById('cube-canvas-container');
       renderMegaminx(container, state.colors);
+    } else if (this.isSkewb) {
+      const container = document.getElementById('cube-canvas-container');
+      renderSkewbUltimate(container, state.colors);
     } else if (this.cube3d) {
       // Reset physical positions first so gridPos is valid for future animateMove calls.
       this.cube3d.resetPositions();
@@ -385,7 +510,7 @@ class SolveController {
     const prevState = this.allStates[step];
     if (!prevState) return;
 
-    if (!this.isMegaminx && this.cube3d && moveData) {
+    if (!this.isMegaminx && !this.isSkewb && this.cube3d && moveData) {
       this._isAnimating = true;
       // Reverse: same face/layer, opposite direction
       const reversed = { ...moveData, direction: -moveData.direction };
@@ -405,7 +530,7 @@ class SolveController {
     const newState = this.allStates[step];
     if (!moveData || !newState) return;
 
-    if (!this.isMegaminx && this.cube3d) {
+    if (!this.isMegaminx && !this.isSkewb && this.cube3d) {
       this._isAnimating = true;
       await this.cube3d.animateMove(moveData, newState.colors, this._moveDuration());
       this._isAnimating = false;
@@ -449,7 +574,7 @@ class SolveController {
 
       const durationMs = this._moveDuration();
 
-      if (!this.isMegaminx && this.cube3d) {
+      if (!this.isMegaminx && !this.isSkewb && this.cube3d) {
         await this.cube3d.animateMove(moveData, newState.colors, durationMs);
       } else {
         this._renderStep(step);
@@ -506,7 +631,7 @@ class TrainController {
     puzzles.forEach((p) => {
       const opt = document.createElement('option');
       opt.value = p;
-      opt.textContent = p === 'megaminx' ? 'Megaminx' : p.toUpperCase();
+      opt.textContent = PUZZLE_DISPLAY_NAMES[p] ?? p.toUpperCase();
       pd.appendChild(opt);
     });
     pd.value = '3x3';

@@ -43,6 +43,12 @@ try:
 except ImportError:
     pass
 
+try:
+    from rubiks_solve.core.skewb_ultimate import SkewbUltimate
+    _PUZZLE_REGISTRY["skewb_ultimate"] = SkewbUltimate
+except ImportError:
+    pass
+
 # ---------------------------------------------------------------------------
 # Solver registry
 # ---------------------------------------------------------------------------

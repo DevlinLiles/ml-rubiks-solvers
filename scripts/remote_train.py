@@ -582,7 +582,7 @@ def _parse_args() -> argparse.Namespace:
     # --- training flags ---
     parser.add_argument("--solver", choices=["cnn", "policy", "dqn"])
     parser.add_argument(
-        "--puzzle", choices=["2x2", "3x3", "4x4", "5x5", "megaminx"], default="3x3"
+        "--puzzle", choices=["2x2", "3x3", "4x4", "5x5", "megaminx", "skewb_ultimate"], default="3x3"
     )
     parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--seed", type=int, default=42)

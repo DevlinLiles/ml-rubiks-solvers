@@ -56,6 +56,8 @@ try:
 except ImportError:
     _MEGAMINX_AVAILABLE = False
 
+from rubiks_solve.core.skewb_ultimate import SkewbUltimate, SKEWB_ULTIMATE_MOVES
+
 __all__ = [
     # Base
     "AbstractPuzzle",
@@ -81,3 +83,5 @@ __all__ = [
 
 if _MEGAMINX_AVAILABLE:
     __all__ += ["Megaminx", "MEGAMINX_MOVES"]
+
+__all__ += ["SkewbUltimate", "SKEWB_ULTIMATE_MOVES"]

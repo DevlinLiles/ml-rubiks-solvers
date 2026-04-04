@@ -106,7 +106,7 @@ class ScrambleDataset:
         batch_size: int,
         min_depth: int = 1,
         max_depth: int = 20,
-        _n_actions: int = 18,
+        n_actions: int = 18,
     ) -> tuple[np.ndarray, np.ndarray]:
         """Generate a batch of ``(state, optimal_move_index)`` pairs for policy training.
 
@@ -140,6 +140,8 @@ class ScrambleDataset:
             raise ValueError(
                 f"max_depth ({max_depth}) must be >= min_depth ({min_depth})."
             )
+        if n_actions < 1:
+            raise ValueError(f"n_actions must be >= 1, got {n_actions}.")
 
         encoded_list: list[np.ndarray] = []
         label_list: list[int] = []

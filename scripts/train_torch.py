@@ -28,6 +28,7 @@ def _build_puzzle_registry() -> dict[str, type]:
     """Return a mapping of puzzle name strings to their concrete classes."""
     from rubiks_solve.core import Cube2x2, Cube3x3, Cube4x4, Cube5x5
     from rubiks_solve.core.megaminx import Megaminx
+    from rubiks_solve.core.skewb_ultimate import SkewbUltimate
 
     return {
         "2x2": Cube2x2,
@@ -35,6 +36,7 @@ def _build_puzzle_registry() -> dict[str, type]:
         "4x4": Cube4x4,
         "5x5": Cube5x5,
         "megaminx": Megaminx,
+        "skewb_ultimate": SkewbUltimate,
     }
 
 
@@ -57,7 +59,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--puzzle",
-        choices=["2x2", "3x3", "4x4", "5x5", "megaminx"],
+        choices=["2x2", "3x3", "4x4", "5x5", "megaminx", "skewb_ultimate"],
         default="3x3",
     )
     parser.add_argument("--epochs", type=int, default=100)

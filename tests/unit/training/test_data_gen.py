@@ -134,3 +134,26 @@ def test_max_depth_less_than_min_raises(dataset):
     """max_depth < min_depth raises ValueError."""
     with pytest.raises(ValueError, match="max_depth"):
         dataset.generate_batch(batch_size=5, min_depth=5, max_depth=3)
+
+
+def test_policy_batch_n_actions_keyword_accepted(dataset):
+    """generate_policy_batch must accept n_actions as a keyword argument.
+
+    Regression: the parameter was briefly renamed to _n_actions (to silence a
+    pylint unused-argument warning), which broke all callers that pass
+    n_actions= by name.
+    """
+    n_actions = len(Cube3x3.solved_state().legal_moves())
+    # This call must not raise TypeError — the parameter name is part of the
+    # public API.
+    states, labels = dataset.generate_policy_batch(
+        batch_size=4, min_depth=1, max_depth=3, n_actions=n_actions
+    )
+    assert states.shape[0] == 4
+    assert labels.shape[0] == 4
+
+
+def test_policy_batch_invalid_n_actions_raises(dataset):
+    """n_actions < 1 raises ValueError."""
+    with pytest.raises(ValueError, match="n_actions"):
+        dataset.generate_policy_batch(batch_size=5, n_actions=0)

@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 ALL_SOLVERS = ["cnn", "policy", "dqn", "genetic"]
-ALL_PUZZLES = ["2x2", "3x3", "4x4", "5x5", "megaminx"]
+ALL_PUZZLES = ["2x2", "3x3", "4x4", "5x5", "megaminx", "skewb_ultimate"]
 
 # Solvers that run on the DGX (neural solvers via PyTorch; genetic is pure Python).
 DGX_SOLVERS = {"cnn", "policy", "dqn", "genetic"}
@@ -158,6 +158,7 @@ def _parse_list(value: str, valid: list[str]) -> list[str]:
 def _build_puzzle_registry() -> dict[str, type]:
     from rubiks_solve.core import Cube2x2, Cube3x3, Cube4x4, Cube5x5
     from rubiks_solve.core.megaminx import Megaminx
+    from rubiks_solve.core.skewb_ultimate import SkewbUltimate
 
     return {
         "2x2": Cube2x2,
@@ -165,6 +166,7 @@ def _build_puzzle_registry() -> dict[str, type]:
         "4x4": Cube4x4,
         "5x5": Cube5x5,
         "megaminx": Megaminx,
+        "skewb_ultimate": SkewbUltimate,
     }
 
 

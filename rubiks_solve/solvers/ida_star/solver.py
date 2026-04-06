@@ -220,8 +220,7 @@ class IDAStarSolver(AbstractSolver):
 
             if child_f > bound:
                 # All remaining candidates have f >= this (sorted), so prune.
-                if child_f < next_bound:
-                    next_bound = child_f
+                next_bound = min(next_bound, child_f)
                 break
 
             path.append(move)
@@ -233,8 +232,7 @@ class IDAStarSolver(AbstractSolver):
             if solution is not None:
                 return -1.0, solution, nodes_expanded
 
-            if t < next_bound:
-                next_bound = t
+            next_bound = min(next_bound, t)
 
             path.pop()
 

@@ -19,7 +19,7 @@ way to harder puzzles as accuracy improves.
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
@@ -134,8 +134,10 @@ class ADITrainer:
             )
 
             # ---- Combine and shuffle ------------------------------------
-            states = np.concatenate([adi_states, fb_states], axis=0) if len(adi_states) else fb_states
-            labels = np.concatenate([adi_distances, fb_distances], axis=0) if len(adi_distances) else fb_distances
+            states = (np.concatenate([adi_states, fb_states], axis=0)
+                      if len(adi_states) else fb_states)
+            labels = (np.concatenate([adi_distances, fb_distances], axis=0)
+                      if len(adi_distances) else fb_distances)
 
             idx = self.rng.permutation(len(states))
             states, labels = states[idx], labels[idx]

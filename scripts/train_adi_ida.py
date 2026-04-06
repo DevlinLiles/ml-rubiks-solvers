@@ -30,6 +30,12 @@ from pathlib import Path
 
 import numpy as np
 
+from rubiks_solve.encoding.registry import get_encoder
+from rubiks_solve.solvers.cnn.adi_trainer import ADITrainer, ADIConfig
+from rubiks_solve.solvers.cnn.model import CubeValueNet
+from rubiks_solve.solvers.cnn.solver import CNNSolver, CNNConfig
+from rubiks_solve.solvers.ida_star.solver import IDAStarSolver, IDAStarConfig
+
 
 # ---------------------------------------------------------------------------
 # Puzzle registry
@@ -145,10 +151,6 @@ def main() -> None:
     registry = _build_registry()
     puzzle_cls = registry[args.puzzle]
 
-    from rubiks_solve.encoding.registry import get_encoder
-    from rubiks_solve.solvers.cnn.model import CubeValueNet
-    from rubiks_solve.solvers.cnn.adi_trainer import ADITrainer, ADIConfig
-
     encoder = get_encoder("one_hot", puzzle_cls)
     rng = np.random.default_rng(args.seed)
 
@@ -219,9 +221,6 @@ def main() -> None:
     if final_ckpt is None:
         log.error("No ADI checkpoint found; cannot run IDA* benchmark.")
         sys.exit(1)
-
-    from rubiks_solve.solvers.ida_star.solver import IDAStarSolver, IDAStarConfig
-    from rubiks_solve.solvers.cnn.solver import CNNSolver, CNNConfig
 
     ida_cfg = IDAStarConfig(
         model_path=final_ckpt,

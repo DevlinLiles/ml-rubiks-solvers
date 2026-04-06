@@ -25,7 +25,7 @@ const FACE_COLORS = [
 
 // BoxGeometry face → axis/sign for move animation
 const FACE_AXIS = { U: 'y', D: 'y', F: 'z', B: 'z', L: 'x', R: 'x' };
-const FACE_SIGN = { U: -1, D: +1, F: -1, B: +1, L: +1, R: -1 };
+const FACE_SIGN = { U: +1, D: -1, F: -1, B: +1, L: +1, R: -1 };
 
 /**
  * Given a face and moveLayer, return which grid coordinate value cubies must
